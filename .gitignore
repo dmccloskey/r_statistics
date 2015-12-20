@@ -55,3 +55,22 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# vs solution files #
+#####################
+*.sln
+*.suo
+obj/
+
+# vs project files #
+####################
+*.pyproj
+main.py
+
+# log files #
+#############
+*.log
+
+# private data #
+#############
+data_private/
