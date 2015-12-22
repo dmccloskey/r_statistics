@@ -1,114 +1,116 @@
 from .r_dependencies import *
 from .r_correlation import r_correlation
 class r_pca(r_correlation):
-    def calculate_pca_princomp(self,data_I,cor_I = "FALSE", scores_I = "TRUE", covmat_I="NULL", na_action_I='na.omit'):
+    def calculate_pca_princomp(self,data_I,cor_I = "FALSE", scores_I = "TRUE", covmat_I="NULL", na_action_I='na.omit',robust_pca_I=False,
+            center_I = "TRUE",
+            scale_I="TRUE"):
         '''PCA analysis using princomp from R
-        Note: The calculation is done using eigen on the correlation or covariance matrix, as determined by cor'''
+        Note: The calculation is done using eigen on the correlation or covariance matrix, as determined by cor
 
-        #TODO:
-
+        princomp(x, cor = FALSE, scores = TRUE, covmat = NULL,
+         subset = rep_len(TRUE, nrow(as.matrix(x))), ...)
+        
+        INPUT:
+        data	
+        an optional data frame (or similar: see model.frame) containing the variables in the formula formula. By default the variables are taken from environment(formula).
+        subset	
+        an optional vector used to select rows (observations) of the data matrix x.
+        na.action	
+        a function which indicates what should happen when the data contain NAs. The default is set by the na.action setting of options, and is na.fail if that is unset. The factory-fresh default is na.omit.
+        x	
+        a numeric matrix or data frame which provides the data for the principal components analysis.
+        cor	
+        a logical value indicating whether the calculation should use the correlation matrix or the covariance matrix. (The correlation matrix can only be used if there are no constant variables.)
+        scores	
+        a logical value indicating whether the score on each principal component should be calculated.
+        covmat	
+        a covariance matrix, or a covariance list as returned by cov.wt (and cov.mve or cov.mcd from package MASS). If supplied, this is used rather than the covariance matrix of x.
+        ...	
+        arguments passed to or from other methods. If x is a formula one might specify cor or scores.
+        
+        perform robust PCA
+        pc.rob <- princomp(X, covmat= MASS::cov.rob(X))
+        '''
+        
         # format into R matrix and list objects
         # convert data dict to matrix filling in missing values
         # with 'NA'
-        sns = []
-        cgn = []
-        for d in data_I:
-                sns.append(d['sample_name_short']);      
-                cgn.append(d['component_name']);
-        sns_sorted = sorted(set(sns))
-        cgn_sorted = sorted(set(cgn))
-        concentrations = ['NA' for r in range(len(sns_sorted)*len(cgn_sorted))];
-        cnt = 0;
-        cnt_bool = True;
-        sna = []
-        for c in cgn_sorted:
-                for s in sns_sorted:
-                    for d in data_I:
-                        if d['sample_name_short'] == s and d['component_name'] == c:
-                            if d['calculated_concentration']:
-                                concentrations[cnt] = d['calculated_concentration'];
-                                if cnt_bool:
-                                    sna.append(d['sample_name_abbreviation']);
-                                break;
-                    cnt = cnt+1
-                cnt_bool = False;
+        listdict = listDict(data_I);
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+            row_label_I='component_name',
+            column_label_I='sample_name_short',
+            value_label_I='calculated_concentration',
+            row_variables_I=['component_group_name'],
+            column_variables_I=['sample_name_abbreviation'],
+            data_IO=[],
+            na_str_I="NA");
+        cgn = row_variables['component_group_name'];
+        sna = column_variables['sample_name_abbreviation'];
+        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        for c in concentrations:
-            if c=='NA':
-                mv += 1;
+        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
         if mv==0:
             # Call to R
             try:
+                # clear the workspace
+                self.clear_workspace();
                 # convert lists to R matrix
-                concentrations_r = '';
-                for c in concentrations:
-                    concentrations_r = (concentrations_r + ',' + str(c));
-                concentrations_r = concentrations_r[1:];
-                r_statement = ('concentrations = c(%s)' % concentrations_r);
-                ans = robjects.r(r_statement);
-                r_statement = ('concentrations_m = matrix(concentrations, nrow = %s, ncol = %s, byrow = TRUE)' %(len(cgn_sorted),len(sns_sorted)));
-                ans = robjects.r(r_statement);
-                # calls for pca analysis
-                #pcascores <- prcomp(t(x), na.action=na.omit, scale=TRUE)
-                #pcascores <- prcomp(t(x), na.action=na.omit)
-                #summary(pcascores)
-                r_statement = ('pc = princomp(concentrations_m, na.action=%s, core=%s, scores=%s, covmat=%s' %(na_action_I,cor_I, scores_I,covmat_I));
-                ans = robjects.r(r_statement);
-                sdev = [];
-                loadings = [];
-                center = [];
-                scale = None;
-                n_obs = None;
-                scores = [];
+                self.make_matrixFromList(concentrations,len(cn_sorted),len(sns_sorted),'concentrations_m');
+                # convert to the transpose
+                self.transpose_matrix('concentrations_mt','concentrations_m');
+                # run PCA
+                self.princomp_pca(
+                        'concentrations_mt',
+                        'result',
+                        robust_pca_I,
+                        na_action_I,cor_I, scores_I,covmat_I,
+                        center_I,
+                        scale_I);
+                # get the scores and loadings
+                data_scores,data_loadings = self.extract_pcaMethods_scoresAndLoadings(
+                    'result',
+                    'concentrations_mt',
+                    pca_model_I,
+                    pca_method_I,
+                    sns_sorted,
+                    sna,sna_unique,
+                    cn_sorted,
+                    cgn,
+                    scale,
+                    center,
+                    );
+                # get the validation
+                data_perf = [];
             except Exception as e:
                 print(e);
                 exit(-1);
+            return data_scores,data_loadings,data_perf;
+        else:
+            print('missing values found!');
     def calculate_pca_prcomp(self,data_I,
         retx_I = "TRUE", center_I = "TRUE", na_action_I='na.omit',scale_I="TRUE"):
         '''PCA analysis using prcomp from R
         Note: calculations are made using svd'''
-
+        
         # format into R matrix and list objects
         # convert data dict to matrix filling in missing values
         # with 'NA'
-        sns = []
-        cn = []
-        for d in data_I:
-                sns.append(d['sample_name_short']);      
-                cn.append(d['component_name']);
-        sns_sorted = sorted(set(sns))
-        cn_sorted = sorted(set(cn))
-        concentrations = ['NA' for r in range(len(sns_sorted)*len(cn_sorted))];
-        #experiment_ids = ['' for r in range(len(sns_sorted)*len(cn_sorted))];
-        #time_points = ['' for r in range(len(sns_sorted)*len(cn_sorted))];
-        cnt = 0;
-        cnt_bool = True;
-        cnt2_bool = True;
-        sna = []
-        cgn = []
-        for c in cn_sorted:
-                cnt2_bool = True;
-                for s in sns_sorted:
-                    for d in data_I:
-                        if d['sample_name_short'] == s and d['component_name'] == c:
-                            if d['calculated_concentration']:
-                                concentrations[cnt] = d['calculated_concentration'];
-                                #experiment_ids[cnt] = d['experiment_id'];
-                                #time_points[cnt] = d['time_point'];
-                                if cnt_bool:
-                                    sna.append(d['sample_name_abbreviation']);
-                                if cnt2_bool:
-                                    cgn.append(d['component_group_name']);
-                                    cnt2_bool = False;
-                                break;
-                    cnt = cnt+1
-                cnt_bool = False;
+        listdict = listDict(data_I);
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+            row_label_I='component_name',
+            column_label_I='sample_name_short',
+            value_label_I='calculated_concentration',
+            row_variables_I=['component_group_name'],
+            column_variables_I=['sample_name_abbreviation'],
+            data_IO=[],
+            na_str_I="NA");
+        cgn = row_variables['component_group_name'];
+        sna = column_variables['sample_name_abbreviation'];
+        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        for c in concentrations:
-            if c=='NA':
-                mv += 1;
+        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
         if mv==0:
             # Call to R
             try:
@@ -352,7 +354,7 @@ class r_pca(r_correlation):
         data_var_O = name of the R object containing the scaled/centered data
         '''
         try:
-            r_statement = ('%s <- scale(%s, center=%s, scale=%s)' %(
+            r_statement = ('%s <- prep(%s, center=%s, scale=%s)' %(
                 data_var_O,data_var_I,center,scale,))
             ans = robjects.r(r_statement);
         except Exception as e:
@@ -640,6 +642,63 @@ class r_pca(r_correlation):
                     var_proportion[i] = var_ex;
                     var_cumulative[i] = var_ex+var_cumulative[i-1];
             return var_proportion,var_cumulative;
+        except Exception as e:
+            print(e);
+            exit(-1);
+            
+    def prcomp_pca(self,
+            data_var_I,
+            data_var_O,
+            retx_I = "TRUE",
+            center_I = "TRUE",
+            na_action_I='na.omit',
+            scale_I="TRUE"
+            ):
+        '''Calculate the correlation matrix
+        INPUT:
+        data_var_I = name of the R workspace variable to scale/center
+        OUTPUT:
+        data_var_O = name of the R object containing the scaled/centered data
+        '''
+        try:
+            # calls for pca analysis
+            r_statement = ('%s = prcomp(%s, na.action=%s, retx=%s, center=%s, scale=%s)' %(
+                data_var_O,data_var_I,na_action_I,retx_I,center_I,scale_I));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+            
+    def princomp_pca(self,
+            data_var_I,
+            data_var_O,
+            robust_I=False,
+            cor_I = "FALSE",
+            scores_I = "TRUE",
+            covmat_I="NULL",
+            na_action_I='na.omit',
+            center_I = "TRUE",
+            scale_I="TRUE"
+            ):
+        '''Calculate the correlation matrix
+        INPUT:
+        data_var_I = name of the R workspace variable to scale/center
+        OUTPUT:
+        data_var_O = name of the R object containing the scaled/centered data
+
+        perform robust PCA
+        pc.rob <- princomp(X, covmat= MASS::cov.rob(X))
+
+        Error in MASS::cov.rob(concentrations_mt) : at least 91 cases are needed
+        '''
+        try:
+            # calls for pca analysis
+            covmat = covmat_I;
+            if robust_I:
+                covmat = ('MASS::cov.rob(%s)' %(data_var_I));
+            r_statement = ('%s = princomp(%s, na.action=%s, cor=%s, scores=%s, covmat=%s, center=%s, scale=%s)' %(
+                data_var_O,data_var_I,na_action_I,cor_I, scores_I,covmat,center_I,scale_I));
+            ans = robjects.r(r_statement);
         except Exception as e:
             print(e);
             exit(-1);
