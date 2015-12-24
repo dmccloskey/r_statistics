@@ -138,6 +138,7 @@ class r_svd(r_base):
         '''calculate svd
         '''
         
+        u_O,d_O,v_O = [],[],[];
         # format into R matrix and list objects
         # convert data dict to matrix filling in missing values
         # with 'NA'
@@ -172,18 +173,20 @@ class r_svd(r_base):
                     self.calculate_pcaMethods_robustSvd('concentrations_mt','resSVD');
                 else:
                     print('svd method not recognized');
+                    return u_O,d_O,v_O;
                 # extract svd matrices
                 u,d,v = self.extract_svd('resSVD');
                 # reformat svd output
-                u_O,d_O,v_O = self.reformat_udv(u,d,v,cn,sns,cgn,sna,svd_method_I,svd_options_I);
+                u_O,d_O,v_O = self.reformat_udv(u,d,v,cn_sorted,sns_sorted,cgn,sna,svd_method_I,svd_options_I);
             except Exception as e:
                 print(e);
                 exit(-1);
             return u_O,d_O,v_O;
         else:
             print('missing values found!');
+            return u_O,d_O,v_O ;
 
-    def reformat_udv(u,d,v,cn,sns,cgn,sna,svd_method_I,svd_options_I):
+    def reformat_udv(self,u,d,v,cn,sns,cgn,sna,svd_method_I,svd_options_I):
         '''reformat SVD u, d, and v matrices to listDicts
         INPUT:
         OUTPUT
@@ -227,8 +230,8 @@ class r_svd(r_base):
         for r in range(d.shape[0]):
             data_tmp = {};
             data_tmp['d_vector'] = d[r];
-            data_tmp['axis'] = c+1;
-            data_tmp['singular_value_index'] = c+1;
+            data_tmp['d_fraction'] = d[r]/numpy.sum(d);
+            data_tmp['singular_value_index'] = r+1;
             data_tmp['svd_method'] = svd_method_I;
             data_tmp['svd_options'] = {
                 };
