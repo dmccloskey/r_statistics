@@ -194,7 +194,7 @@ class r_svd(r_base):
         d_O
         v_O
         '''
-        # extractou out the U matrix
+        # extract out the U matrix
         u_O = [];
         cnt=0;
         for r in range(u.shape[0]):
@@ -225,12 +225,14 @@ class r_svd(r_base):
                 v_O.append(data_tmp);
                 cnt+=1;
         # extract out d vector
+        d_fraction,d_fraction_cumulative = self.make_svd_dFractionCumulative(d);
         d_O = [];
         cnt=0;
         for r in range(d.shape[0]):
             data_tmp = {};
             data_tmp['d_vector'] = d[r];
-            data_tmp['d_fraction'] = d[r]/numpy.sum(d);
+            data_tmp['d_fraction'] = d_fraction[r];
+            data_tmp['d_fraction_cumulative'] = d_fraction_cumulative[r];
             data_tmp['singular_value_index'] = r+1;
             data_tmp['svd_method'] = svd_method_I;
             data_tmp['svd_options'] = {
@@ -238,3 +240,24 @@ class r_svd(r_base):
             d_O.append(data_tmp);
             cnt+=1;
         return u_O,d_O,v_O;
+
+    def make_svd_dFractionCumulative(self,d):
+        '''make singular value fraction and fraction_cumulative vectors
+        INPUT:
+        d = d vector
+        OUTPUT
+        d_fraction
+        d_fraction_cumulative
+        '''
+        d_fraction = numpy.zeros_like(d);
+        d_fraction_cumulative = numpy.zeros_like(d);
+        d_total = numpy.sum(d);
+        for i in range(d.shape[0]):
+            fraction = d[i]/d_total;
+            if i==0:
+                d_fraction[i] = fraction;
+                d_fraction_cumulative[i] = fraction;
+            else:
+                d_fraction[i] = fraction;
+                d_fraction_cumulative[i] = d_fraction_cumulative[i-1] + fraction;
+        return d_fraction,d_fraction_cumulative;
