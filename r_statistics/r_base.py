@@ -1,4 +1,4 @@
-from .r_dependencies import *
+﻿from .r_dependencies import *
 
 class r_base():
     def __init__(self):
@@ -262,3 +262,34 @@ class r_base():
         except Exception as e:
             print(e);
             exit(-1);
+
+    def calculate_pValueCorrected(self,pvalue_I,pvalue_O,method_I = "bonferroni"):
+        '''calculate the corrected p-value
+        INPUT:
+        pvalue_I = float, uncorrected p-value
+                   OR string, name of the r-workspace variable
+        method_I = string, method name
+        pvalue_O = string, name of the r-workspace variable
+        OUTPUT:
+        pvalue_corrected_O = float, corrected p-value
+        DESCRIPTION:
+        https://stat.ethz.ch/R-manual/R-devel/library/stats/html/p.adjust.html
+
+        p.adjust(p, method = p.adjust.methods, n = length(p))
+
+        p.adjust.methods
+        # c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
+        #   "fdr", "none")
+        '''
+        pvalue_corrected_O = None;
+        try:
+            if type(pvalue_I)==type(''):
+                r_statement = ('%s = p.adjust(%s, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
+            else:
+                r_statement = ('%s = p.adjust(%f, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
+            ans = robjects.r(r_statement);
+            pvalue_corrected_O = numpy.array(ans); #need to test
+        except Exception as e:
+            print(e);
+            exit(-1);
+        return pvalue_corrected_O;
