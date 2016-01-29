@@ -2,9 +2,20 @@ from .r_dependencies import *
 from .r_base import r_base
 class r_missingValues(r_base):
     def calculate_missingValues(self,data_I,n_imputations_I = 1000):
-        # calculate missing values using the AmeliaII R package
-        # 1000 imputations (default) are computed and averaged to generate
-        # the resulting data without missing values
+        '''calculate missing values using a bootstrapping approach
+        as implemented in the AmeliaII R package
+        https://cran.r-project.org/web/packages/Amelia/Amelia.pdf
+        http://r.iq.harvard.edu/docs/amelia/amelia.pdf
+        1000 imputations (default) are computed and averaged to generate
+        the resulting data without missing values
+        INPUT:
+        data_I = listDict
+        n_imputations_I = integer, number of imputations
+        OUTPUT:
+        sns_O = [] of string, sample_name_short
+        cn_O = [] of string, component_name
+        cc_O = [] of float, calculated_concentration
+        '''
 
         # convert data dict to matrix filling in missing values
         # with 'NA'
@@ -108,7 +119,8 @@ class r_missingValues(r_base):
             nipals
             bpca
             ppca
-            svdImpute
+            svdImpute
+
         
         '''
         try:

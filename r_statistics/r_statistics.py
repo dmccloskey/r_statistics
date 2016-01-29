@@ -1,4 +1,4 @@
-from .r_dependencies import *
+﻿from .r_dependencies import *
 from .r_base import r_base
 class r_statistics(r_base):
     def calculate_ave_CV_R(self,data_I):
@@ -16,8 +16,8 @@ class r_statistics(r_base):
             data_CV_O = sqrt(data_var)/data_ave_O*100;
 
             return data_ave_O, data_CV_O;
-        except:
-            print('error in R')
+        except Exception as e:
+            print(e);
     def calculate_ave_var_R(self,data_I):
         # calculate average and CV of data
         # Call to R
@@ -302,3 +302,418 @@ class r_statistics(r_base):
             return None;
             #exit(-1);
         return data_tmp;
+    def calculate_twoSampleWilcoxRankSumTest(self,data_1_I, data_2_I,
+            alternative_I = "two.sided", mu_I = 0, paired_I="TRUE",
+            exact_I = "NULL",correct_I = "TRUE",
+            ci_int_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni"
+            ):
+        ''' 
+        Calculate the Wilcoxon Rank Sum and Signed Rank Tests using R stats
+        https://stat.ethz.ch/R-manual/R-devel/library/stats/html/wilcox.test.html
+        INPUT:
+        OUTPUT:
+        DESCRIPTION:
+        wilcox.test(x, ...)
+
+        ## Default S3 method:
+        wilcox.test(x, y = NULL,
+                    alternative = c("two.sided", "less", "greater"),
+                    mu = 0, paired = FALSE, exact = NULL, correct = TRUE,
+                    conf.int = FALSE, conf.level = 0.95, ...)
+
+        ## S3 method for class 'formula'
+        wilcox.test(formula, data, subset, na.action, ...)
+        
+        x	
+        numeric vector of data values. Non-finite (e.g., infinite or missing) values will be omitted.
+
+        y	
+        an optional numeric vector of data values: as with x non-finite values will be omitted.
+
+        alternative	
+        a character string specifying the alternative hypothesis, must be one of "two.sided" (default), "greater" or "less". You can specify just the initial letter.
+
+        mu	
+        a number specifying an optional parameter used to form the null hypothesis. See Details.
+
+        paired	
+        a logical indicating whether you want a paired test.
+
+        exact	
+        a logical indicating whether an exact p-value should be computed.
+
+        correct	
+        a logical indicating whether to apply continuity correction in the normal approximation for the p-value.
+
+        conf.int	
+        a logical indicating whether a confidence interval should be computed.
+
+        conf.level	
+        confidence level of the interval.
+
+        formula	
+        a formula of the form lhs ~ rhs where lhs is a numeric variable giving the data values and rhs a factor with two levels giving the corresponding groups.
+
+        data	
+        an optional matrix or data frame (or similar: see model.frame) containing the variables in the formula formula. By default the variables are taken from environment(formula).
+
+        subset	
+        an optional vector specifying a subset of observations to be used.
+
+        na.action	
+        a function which indicates what should happen when the data contain NAs. Defaults to getOption("na.action").
+        '''
+        try:
+            # clear the workspace
+            self.clear_workspace();
+            #make R vectors
+            data_1 = 'data1';
+            self.make_vectorFromList(data_1_I,data_1);
+            data_2 = 'data2';
+            self.make_vectorFromList(data_1_I,data_2);
+            #calculate wilcox.text
+            data_wt = 'datawt';
+            self.calculate_wilcoxTest(
+                data_1,data_2,data_O,
+                alternative_I = alternative_I, mu_I = mu_I, paired_I=paired_I,
+                exact_I = exact_I,correct_I = correct_I,
+                ci_int_I = ci_int_I, ci_level_I = ci_level_I);
+            #extract variables from the R workspace
+            data = self.extract_wilcoxTest(data_wt);
+            #adjust the p-value
+            pvalue_O = 'p.value.corrected';
+            pvalue_adjusted = self.calculate_pValueCorrected(data['p.value'],pvalue_O,method_I = padjusted_method_I);
+            #extract out the values into listDicts
+            pvalue_adjusted_description = padjusted_method_I
+            # extract out data
+            data_tmp = {};
+            data_tmp['mean'] = data['estimate'];
+            data_tmp['ci_lb'] = data['ci'][0];
+            data_tmp['ci_ub'] = data['ci'][1];
+            data_tmp['ci_level'] = ci_level_I;
+            data_tmp['test_stat'] = data['statistic'];
+            data_tmp['test_description'] = 'wilcoxon_rank_sum';
+            data_tmp['pvalue'] = data['p.value'];
+            data_tmp['pvalue_corrected'] = pvalue_adjusted;
+            data_tmp['pvalue_corrected_description'] = pvalue_adjusted_description;
+            return data_O;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def calculate_wilcoxTest(self,
+            data_1_I, data_2_I,data_O,
+            alternative_I = "two.sided", mu_I = 0, paired_I="TRUE",
+            exact_I = "NULL",correct_I = "TRUE",
+            ci_int_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni",
+            ):
+        '''
+        call wilcox.text from R
+        INPUT:
+        data_1_I = string, r workspace variable
+        data_2_I = string, r workspace variable
+        ...
+        OUTPUT:
+        data_O = string, r workspace variable
+        DESCRIPTION:
+        wilcox.test(x, ...)
+
+        ## Default S3 method:
+        wilcox.test(x, y = NULL,
+                    alternative = c("two.sided", "less", "greater"),
+                    mu = 0, paired = FALSE, exact = NULL, correct = TRUE,
+                    conf.int = FALSE, conf.level = 0.95, ...)
+
+        ## S3 method for class 'formula'
+        wilcox.test(formula, data, subset, na.action, ...)
+        
+        ARGUMENTS:
+        x	
+        numeric vector of data values. Non-finite (e.g., infinite or missing) values will be omitted.
+
+        y	
+        an optional numeric vector of data values: as with x non-finite values will be omitted.
+
+        alternative	
+        a character string specifying the alternative hypothesis, must be one of "two.sided" (default), "greater" or "less". You can specify just the initial letter.
+
+        mu	
+        a number specifying an optional parameter used to form the null hypothesis. See Details.
+
+        paired	
+        a logical indicating whether you want a paired test.
+
+        exact	
+        a logical indicating whether an exact p-value should be computed.
+
+        correct	
+        a logical indicating whether to apply continuity correction in the normal approximation for the p-value.
+
+        conf.int	
+        a logical indicating whether a confidence interval should be computed.
+
+        conf.level	
+        confidence level of the interval.
+
+        formula	
+        a formula of the form lhs ~ rhs where lhs is a numeric variable giving the data values and rhs a factor with two levels giving the corresponding groups.
+
+        data	
+        an optional matrix or data frame (or similar: see model.frame) containing the variables in the formula formula. By default the variables are taken from environment(formula).
+
+        subset	
+        an optional vector specifying a subset of observations to be used.
+
+        na.action	
+        a function which indicates what should happen when the data contain NAs. Defaults to getOption("na.action").
+
+        '''
+        try:
+            r_statement = ('%s = wilcox.test(%s, %s,alternative = "%s",mu = %s, paired = %s, exact = %s, correct = %s,conf.int = %s, conf.level = %s)'
+                %(data_O,data_1_I,data_2_I,alternative_I,mu_I,paired_I,exact_I,correct_I,ci_int_I,ci_level_I));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_wilcoxTest(self,
+            data_I
+            ):
+        '''
+        extract variables from R
+
+        INPUT:
+        data_I = string, r workspace variable
+        ...
+        OUTPUT:
+        data_O = {} of values
+        
+        returned variable is class "htest" with the following values
+        VALUES:
+        
+        statistic	
+        the value of the test statistic with a name describing it.
+
+        parameter	
+        the parameter(s) for the exact distribution of the test statistic.
+
+        p.value	
+        the p-value for the test.
+
+        null.value	
+        the location parameter mu.
+
+        alternative	
+        a character string describing the alternative hypothesis.
+
+        method	
+        the type of test applied.
+
+        data.name	
+        a character string giving the names of the data.
+
+        conf.int	
+        a confidence interval for the location parameter. (Only present if argument conf.int = TRUE.)
+
+        estimate	
+        an estimate of the location parameter. (Only present if argument conf.int = TRUE.)
+
+        '''
+        data_O = None;
+        try:
+            r_statement = ('%s' %(data_O));
+            ans = robjects.r(r_statement);
+            #extract out values
+            statistic = ans.rx2('statistic')[0];
+            parameter = ans.rx2('parameter')[0];
+            pValue = ans.rx2('p.value')[0];
+            nullValue = ans.rx2('null.value')[0];
+            alternative = ans.rx2('alternative')[0];
+            method = ans.rx2('method')[0];
+            dataName = ans.rx2('data.name')[0];
+            ci = numpy.array(ans.rx2('conf.int'))
+            estimate = ans.rx2('estimate')[0];
+            #copy to a dictionary
+            data_O = {"statistic":statistic,
+                "parameter":parameter,
+                "p.value":pValue,
+                "null.value":nullValue,
+                "alternative":alternative,
+                "method":method,
+                "data.name":dataName,
+                "conf.int":ci,
+                "estimate":estimate,
+                };
+
+        except Exception as e:
+            print(e);
+            exit(-1);
+        return data_O;
+
+    def calculate_kolmogorovSmirnovTest(self,
+            data_1_I, data_2_I,data_O,
+            alternative_I = "two.sided",
+            exact_I = "NULL"):
+        '''
+        Perform a one- or two-sample Kolmogorov-Smirnov test.
+        https://stat.ethz.ch/R-manual/R-devel/library/stats/html/ks.test.html
+
+        Usage
+
+        ks.test(x, y, ...,
+                alternative = c("two.sided", "less", "greater"),
+                exact = NULL)
+
+        Can be used to test if the sample comes from a normal distribution
+        e.g.
+        
+        require(graphics)
+        x <- rnorm(50)
+        y <- runif(30)
+        # Do x and y come from the same distribution?
+        ks.test(x, y)
+        # Does x come from a shifted gamma distribution with shape 3 and rate 2?
+        ks.test(x+2, "pgamma", 3, 2) # two-sided, exact
+        ks.test(x+2, "pgamma", 3, 2, exact = FALSE)
+        ks.test(x+2, "pgamma", 3, 2, alternative = "gr")
+        '''
+        try:
+            # clear the workspace
+            self.clear_workspace();
+            #make R vectors
+            data_1 = 'data1';
+            self.make_vectorFromList(data_1_I,data_1);
+            data_2 = 'data2';
+            self.make_vectorFromList(data_1_I,data_2);
+            #calculate wilcox.text
+            data_wt = 'datakst';
+            self.calculate_ksTest(
+                data_1,data_2,data_O,
+                alternative_I = alternative_I,
+                exact_I = exact_I);
+            #extract variables from the R workspace
+            data = self.extract_ksTest(data_wt);
+            #adjust the p-value
+            pvalue_O = 'p.value.corrected';
+            pvalue_adjusted = self.calculate_pValueCorrected(data['p.value'],pvalue_O,method_I = padjusted_method_I);
+            #extract out the values into listDicts
+            pvalue_adjusted_description = padjusted_method_I
+            # extract out data
+            data_tmp = {};
+            data_tmp['mean'] = data['estimate'];
+            data_tmp['ci_lb'] = None;
+            data_tmp['ci_ub'] = None;
+            data_tmp['ci_level'] = ci_level_I;
+            data_tmp['test_stat'] = None;
+            data_tmp['test_description'] = 'kolmogorov_smirnov_test';
+            data_tmp['pvalue'] = data['p.value'];
+            data_tmp['pvalue_corrected'] = pvalue_adjusted;
+            data_tmp['pvalue_corrected_description'] = pvalue_adjusted_description;
+            return data_O;
+        except Exception as e:
+            print(e);
+            exit(-1);
+    def calculate_ksTest(self):
+        '''call ks.test in R
+        INPUT:
+        OUTPUT:
+        
+        ks.test(x, y, ...,
+                alternative = c("two.sided", "less", "greater"),
+                exact = NULL)
+
+        Arguments
+
+        x	
+        a numeric vector of data values.
+
+        y	
+        either a numeric vector of data values, or a character string naming a cumulative distribution function or an actual cumulative distribution function such as pnorm. Only continuous CDFs are valid.
+
+        ...	
+        parameters of the distribution specified (as a character string) by y.
+
+        alternative	
+        indicates the alternative hypothesis and must be one of "two.sided" (default), "less", or "greater". You can specify just the initial letter of the value, but the argument name must be give in full. See Details for the meanings of the possible values.
+
+        exact	
+        NULL or a logical indicating whether an exact p-value should be computed. See Details for the meaning of NULL. Not available in the two-sample case for a one-sided test or if ties are present.
+
+        Details
+
+        If y is numeric, a two-sample test of the null hypothesis that x and y were drawn from the same continuous distribution is performed.
+
+        Alternatively, y can be a character string naming a continuous (cumulative) distribution function, or such a function. In this case, a one-sample test is carried out of the null that the distribution function which generated x is distribution y with parameters specified by ....
+
+        The presence of ties always generates a warning, since continuous distributions do not generate them. If the ties arose from rounding the tests may be approximately valid, but even modest amounts of rounding can have a significant effect on the calculated statistic.
+
+        Missing values are silently omitted from x and (in the two-sample case) y.
+
+        The possible values "two.sided", "less" and "greater" of alternative specify the null hypothesis that the true distribution function of x is equal to, not less than or not greater than the hypothesized distribution function (one-sample case) or the distribution function of y (two-sample case), respectively. This is a comparison of cumulative distribution functions, and the test statistic is the maximum difference in value, with the statistic in the "greater" alternative being D^+ = max[F_x(u) - F_y(u)]. Thus in the two-sample case alternative = "greater" includes distributions for which x is stochastically smaller than y (the CDF of x lies above and hence to the left of that for y), in contrast to t.test or wilcox.test.
+
+        Exact p-values are not available for the two-sample case if one-sided or in the presence of ties. If exact = NULL (the default), an exact p-value is computed if the sample size is less than 100 in the one-sample case and there are no ties, and if the product of the sample sizes is less than 10000 in the two-sample case. Otherwise, asymptotic distributions are used whose approximations may be inaccurate in small samples. In the one-sample two-sided case, exact p-values are obtained as described in Marsaglia, Tsang & Wang (2003) (but not using the optional approximation in the right tail, so this can be slow for small p-values). The formula of Birnbaum & Tingey (1951) is used for the one-sample one-sided case.
+
+        If a single-sample test is used, the parameters specified in ... must be pre-specified and not estimated from the data. There is some more refined distribution theory for the KS test with estimated parameters (see Durbin, 1973), but that is not implemented in ks.test.
+
+        '''
+        try:
+            r_statement = ('%s' %(data_O));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_ksest(self,
+            data_I
+            ):
+        '''
+        extract variables from R
+
+        INPUT:
+        data_I = string, r workspace variable
+        ...
+        OUTPUT:
+        data_O = {} of values
+
+        Value
+
+        A list with class "htest" containing the following components:
+
+        statistic	
+        the value of the test statistic.
+
+        p.value	
+        the p-value of the test.
+
+        alternative	
+        a character string describing the alternative hypothesis.
+
+        method	
+        a character string indicating what type of test was performed.
+
+        data.name	
+        a character string giving the name(s) of the data.
+
+        '''
+        data_O = None;
+        try:
+            r_statement = ('%s' %(data_O));
+            ans = robjects.r(r_statement);
+            #extract out values
+            statistic = ans.rx2('statistic')[0];
+            pValue = ans.rx2('p.value')[0];
+            alternative = ans.rx2('alternative')[0];
+            method = ans.rx2('method')[0];
+            dataName = ans.rx2('data.name')[0];
+            #copy to a dictionary
+            data_O = {"statistic":statistic,
+                "p.value":pValue,
+                "alternative":alternative,
+                "method":method,
+                "data.name":dataName,
+                };
+
+        except Exception as e:
+            print(e);
+            exit(-1);
+        return data_O;

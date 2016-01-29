@@ -262,7 +262,6 @@ class r_base():
         except Exception as e:
             print(e);
             exit(-1);
-
     def calculate_pValueCorrected(self,pvalue_I,pvalue_O,method_I = "bonferroni"):
         '''calculate the corrected p-value
         INPUT:
@@ -288,8 +287,50 @@ class r_base():
             else:
                 r_statement = ('%s = p.adjust(%f, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
             ans = robjects.r(r_statement);
-            pvalue_corrected_O = numpy.array(ans); #need to test
+            pvalue_corrected_O = numpy.array(ans[0]); #need to test
         except Exception as e:
             print(e);
             exit(-1);
         return pvalue_corrected_O;
+    def make_vectorFromList(self,list_I,vector_O):
+        '''
+        make an R vector from a python list
+        supports conversion of the following types:
+            floats
+            integers
+            strings
+            booleans
+        INPUT:
+        list_I = list of floats or strings or booleans
+        OUTPUT:
+        vector_O = string, name of the R workspace variable
+        '''
+        try:
+            if type(list_I[0])==type(1.0) or type(list_I[0])==type(1):
+                list_str = '';
+                for c in list_I:
+                    list_str = (list_str + ',' + str(c));
+                list_str = list_str[1:];
+                r_statement = ('%s = c(%s)' % (vector_O,list_str));
+                ans = robjects.r(r_statement);
+            elif type(list_I[0])==type(''):
+                list_str = '';
+                for c in list_I:
+                    list_str = (list_str + ',' + '"' + c + '"');
+                list_str = list_str[1:];
+                r_statement = ('%s = c(%s)' % (vector_O,list_str));
+                ans = robjects.r(r_statement);
+            elif type(list_I[0])==type(True):
+                list_str = '';
+                for c in list_I:
+                    if c:
+                        list_str = (list_str + ',' + "TRUE");
+                    else:
+                        list_str = (list_str + ',' + "FAlSE");
+                list_str = list_str[1:];
+                r_statement = ('%s = c(%s)' % (vector_O,list_str));
+                ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
