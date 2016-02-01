@@ -302,7 +302,7 @@ class r_statistics(r_base):
             return None;
             #exit(-1);
         return data_tmp;
-    def calculate_twoSampleWilcoxRankSumTest(self,data_1_I, data_2_I,
+    def calculate_twoSampleWilcoxonRankSumTest(self,data_1_I, data_2_I,
             alternative_I = "two.sided", mu_I = 0, paired_I="TRUE",
             exact_I = "NULL",correct_I = "TRUE",
             ci_int_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni"
@@ -373,13 +373,13 @@ class r_statistics(r_base):
             self.make_vectorFromList(data_1_I,data_2);
             #calculate wilcox.text
             data_wt = 'datawt';
-            self.calculate_wilcoxTest(
-                data_1,data_2,data_O,
+            self.calculate_wilcoxonTest(
+                data_1,data_2,data_wt,
                 alternative_I = alternative_I, mu_I = mu_I, paired_I=paired_I,
                 exact_I = exact_I,correct_I = correct_I,
                 ci_int_I = ci_int_I, ci_level_I = ci_level_I);
             #extract variables from the R workspace
-            data = self.extract_wilcoxTest(data_wt);
+            data = self.extract_wilcoxonTest(data_wt);
             #adjust the p-value
             pvalue_O = 'p.value.corrected';
             pvalue_adjusted = self.calculate_pValueCorrected(data['p.value'],pvalue_O,method_I = padjusted_method_I);
@@ -401,7 +401,7 @@ class r_statistics(r_base):
             print(e);
             exit(-1);
 
-    def calculate_wilcoxTest(self,
+    def calculate_wilcoxonTest(self,
             data_1_I, data_2_I,data_O,
             alternative_I = "two.sided", mu_I = 0, paired_I="TRUE",
             exact_I = "NULL",correct_I = "TRUE",
@@ -469,14 +469,14 @@ class r_statistics(r_base):
 
         '''
         try:
-            r_statement = ('%s = wilcox.test(%s, %s,alternative = "%s",mu = %s, paired = %s, exact = %s, correct = %s,conf.int = %s, conf.level = %s)'
+            r_statement = ('%s = wilcox.test(%s, %s, alternative = "%s",mu = %s, paired = %s, exact = %s, correct = %s, conf.int = %s, conf.level = %s)'
                 %(data_O,data_1_I,data_2_I,alternative_I,mu_I,paired_I,exact_I,correct_I,ci_int_I,ci_level_I));
             ans = robjects.r(r_statement);
         except Exception as e:
             print(e);
             exit(-1);
 
-    def extract_wilcoxTest(self,
+    def extract_wilcoxonTest(self,
             data_I
             ):
         '''
