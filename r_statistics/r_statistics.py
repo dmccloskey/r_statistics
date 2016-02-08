@@ -226,10 +226,11 @@ class r_statistics(r_base):
             data_tmp['pvalue'] = pvalue;
             data_tmp['pvalue_corrected'] = pvalue_adjusted;
             data_tmp['pvalue_corrected_description'] = pvalue_adjusted_description;
+            return data_tmp;
         except Exception as e:
             print(e);
-            exit(-1);
-        return data_tmp;
+            #exit(-1);
+            return None;
     def calculate_oneSampleTTest(self,data_1_I, alternative_I = "two.sided", mu_I = 0, paired_I="TRUE", var_equal_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni"):
         '''calculate a two Sample t-test using R's built in Stats package
         padjusted_methods: ("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"
@@ -373,33 +374,49 @@ class r_statistics(r_base):
             self.make_vectorFromList(data_1_I,data_2);
             #calculate wilcox.text
             data_wt = 'datawt';
-            self.calculate_wilcoxonTest(
-                data_1,data_2,data_wt,
-                alternative_I = alternative_I, mu_I = mu_I, paired_I=paired_I,
-                exact_I = exact_I,correct_I = correct_I,
-                ci_int_I = ci_int_I, ci_level_I = ci_level_I);
+            try:
+                self.calculate_wilcoxonTest(
+                    data_1,data_2,data_wt,
+                    alternative_I = alternative_I, mu_I = mu_I, paired_I=paired_I,
+                    exact_I = exact_I,correct_I = correct_I,
+                    ci_int_I = ci_int_I, ci_level_I = ci_level_I);
+            except Exception as e:
+                print(e);
+                #retry using an alternative method
+                try:
+                    self.calculate_wilcoxonExact(
+                        data_1,data_2,data_wt,
+                        alternative_I = alternative_I, mu_I = mu_I, paired_I=paired_I,
+                        exact_I = exact_I,correct_I = correct_I,
+                        ci_int_I = ci_int_I, ci_level_I = ci_level_I);
+                except Exception as e:
+                    print(e);
+                    return None;
             #extract variables from the R workspace
             data = self.extract_wilcoxonTest(data_wt);
             #adjust the p-value
-            pvalue_O = 'p.value.corrected';
-            pvalue_adjusted = self.calculate_pValueCorrected(data['p.value'],pvalue_O,method_I = padjusted_method_I);
+            if data['p.value'] is None:
+                pvalue_adjusted=None;
+            else:
+                pvalue_O = 'p.value.corrected';
+                pvalue_adjusted = self.calculate_pValueCorrected(data['p.value'],pvalue_O,method_I = padjusted_method_I);
             #extract out the values into listDicts
             pvalue_adjusted_description = padjusted_method_I
             # extract out data
             data_tmp = {};
             data_tmp['mean'] = data['estimate'];
-            data_tmp['ci_lb'] = data['ci'][0];
-            data_tmp['ci_ub'] = data['ci'][1];
+            data_tmp['ci_lb'] = data['conf.int'][0];
+            data_tmp['ci_ub'] = data['conf.int'][1];
             data_tmp['ci_level'] = ci_level_I;
             data_tmp['test_stat'] = data['statistic'];
-            data_tmp['test_description'] = 'wilcoxon_rank_sum';
+            data_tmp['test_description'] = data['method'];
             data_tmp['pvalue'] = data['p.value'];
             data_tmp['pvalue_corrected'] = pvalue_adjusted;
             data_tmp['pvalue_corrected_description'] = pvalue_adjusted_description;
-            return data_O;
+            return data_tmp;
         except Exception as e:
             print(e);
-            exit(-1);
+            return None;
 
     def calculate_wilcoxonTest(self,
             data_1_I, data_2_I,data_O,
@@ -474,7 +491,15 @@ class r_statistics(r_base):
             ans = robjects.r(r_statement);
         except Exception as e:
             print(e);
-            exit(-1);
+            raise(e);
+            ## retry not calculating the confidence interval
+            #try:
+            #    r_statement = ('%s = wilcox.test(%s, %s, alternative = "%s",mu = %s, paired = %s, exact = %s, correct = %s, conf.int = %s, conf.level = %s)'
+            #        %(data_O,data_1_I,data_2_I,alternative_I,mu_I,paired_I,exact_I,correct_I,"FALSE",ci_level_I));
+            #    ans = robjects.r(r_statement);
+            #except Exception as ae:
+            #    print(ae);
+            #    exit(-1);
 
     def extract_wilcoxonTest(self,
             data_I
@@ -521,18 +546,30 @@ class r_statistics(r_base):
         '''
         data_O = None;
         try:
-            r_statement = ('%s' %(data_O));
+            r_statement = ('%s' %(data_I));
             ans = robjects.r(r_statement);
             #extract out values
             statistic = ans.rx2('statistic')[0];
-            parameter = ans.rx2('parameter')[0];
-            pValue = ans.rx2('p.value')[0];
+            if str(type(ans.rx2('parameter')))=="<class 'rpy2.rinterface.RNULLType'>":
+                parameter = None;
+            else:
+                parameter = ans.rx2('parameter')[0];
+            if numpy.isnan(ans.rx2('p.value')[0]):
+                pValue = None;
+            else:
+                pValue = ans.rx2('p.value')[0];
             nullValue = ans.rx2('null.value')[0];
             alternative = ans.rx2('alternative')[0];
             method = ans.rx2('method')[0];
             dataName = ans.rx2('data.name')[0];
-            ci = numpy.array(ans.rx2('conf.int'))
-            estimate = ans.rx2('estimate')[0];
+            if str(type(ans.rx2('conf.int')))=="<class 'rpy2.rinterface.RNULLType'>":
+                ci = [None,None];
+            else:
+                ci = numpy.array(ans.rx2('conf.int'))
+            if str(type(ans.rx2('estimate')))=="<class 'rpy2.rinterface.RNULLType'>":
+                estimate = None;
+            else:
+                estimate = ans.rx2('estimate')[0]
             #copy to a dictionary
             data_O = {"statistic":statistic,
                 "parameter":parameter,
@@ -717,3 +754,79 @@ class r_statistics(r_base):
             print(e);
             exit(-1);
         return data_O;
+
+    def calculate_wilcoxonExact(self,
+            data_1_I, data_2_I,data_O,
+            alternative_I = "two.sided", mu_I = 0, paired_I="TRUE",
+            exact_I = "NULL",correct_I = "TRUE",
+            ci_int_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni",
+            ):
+        '''
+        call wilcox.exact from R package exactRankTests
+        https://cran.r-project.org/web/packages/exactRankTests/exactRankTests.pdf
+        INPUT:
+        data_1_I = string, r workspace variable
+        data_2_I = string, r workspace variable
+        ...
+        OUTPUT:
+        data_O = string, r workspace variable
+        DESCRIPTION:
+        wilcox.exact(x, ...)
+
+        ## Default S3 method:
+        wilcox.exact(x, y = NULL,
+                    alternative = c("two.sided", "less", "greater"),
+                    mu = 0, paired = FALSE, exact = NULL, correct = TRUE,
+                    conf.int = FALSE, conf.level = 0.95, ...)
+
+        ## S3 method for class 'formula'
+        wilcox.exact(formula, data, subset, na.action, ...)
+        
+        ARGUMENTS:
+        x	
+        numeric vector of data values. Non-finite (e.g., infinite or missing) values will be omitted.
+
+        y	
+        an optional numeric vector of data values: as with x non-finite values will be omitted.
+
+        alternative	
+        a character string specifying the alternative hypothesis, must be one of "two.sided" (default), "greater" or "less". You can specify just the initial letter.
+
+        mu	
+        a number specifying an optional parameter used to form the null hypothesis. See Details.
+
+        paired	
+        a logical indicating whether you want a paired test.
+
+        exact	
+        a logical indicating whether an exact p-value should be computed.
+
+        correct	
+        a logical indicating whether to apply continuity correction in the normal approximation for the p-value.
+
+        conf.int	
+        a logical indicating whether a confidence interval should be computed.
+
+        conf.level	
+        confidence level of the interval.
+
+        formula	
+        a formula of the form lhs ~ rhs where lhs is a numeric variable giving the data values and rhs a factor with two levels giving the corresponding groups.
+
+        data	
+        an optional matrix or data frame (or similar: see model.frame) containing the variables in the formula formula. By default the variables are taken from environment(formula).
+
+        subset	
+        an optional vector specifying a subset of observations to be used.
+
+        na.action	
+        a function which indicates what should happen when the data contain NAs. Defaults to getOption("na.action").
+
+        '''
+        try:
+            r_statement = ('%s = wilcox.exact(%s, %s, alternative = "%s",mu = %s, paired = %s, exact = %s, correct = %s, conf.int = %s, conf.level = %s)'
+                %(data_O,data_1_I,data_2_I,alternative_I,mu_I,paired_I,exact_I,correct_I,ci_int_I,ci_level_I));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            raise(e);

@@ -162,7 +162,20 @@ class r_base():
             r_statement = ('library("pcaMethods")');
             ans = robjects.r(r_statement);
             r_statement = ('require(pcaMethods)');
-            ans = robjects.r(r_statement); 
+            ans = robjects.r(r_statement);    
+        #exactRankTests (package for computing exact rank tests with tied observations)
+        try:
+            r_statement = ('library("exactRankTests")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(exactRankTests)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("exactRankTests",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("exactRankTests")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(exactRankTests)');
+            ans = robjects.r(r_statement);
 
     def make_matrixFromList(self,list_I,nrows_I,ncolumns_I,matrix_O):
         '''R commands to make a matrix from a list of data
@@ -285,9 +298,9 @@ class r_base():
             if type(pvalue_I)==type(''):
                 r_statement = ('%s = p.adjust(%s, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
             else:
-                r_statement = ('%s = p.adjust(%f, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
+                r_statement = ('%s = p.adjust(as.numeric(%s), method = "%s")' %(pvalue_O,pvalue_I,method_I)); 
             ans = robjects.r(r_statement);
-            pvalue_corrected_O = numpy.array(ans[0]); #need to test
+            pvalue_corrected_O = ans[0]; 
         except Exception as e:
             print(e);
             exit(-1);
