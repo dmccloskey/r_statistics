@@ -173,7 +173,10 @@ class r_dataNormalization(r_base):
         else:
             print('missing values found in data!');
 
-    def calculate_glogNormalization(self,data_I):
+    def calculate_glogNormalization(self,data_I,
+            mult="TRUE",
+            lowessnorm="FALSE"
+            ):
         '''normalize the data using a glog transformation using LMGene
         https://www.bioconductor.org/packages/release/bioc/html/LMGene.html
         Citation: Rocke D, Lee GC, Tillinghast J, Durbin-Johnson B and Wu S (2013). LMGene: LMGene Software for Data Transformation and Identification of Differentially Expressed Genes in Gene Expression Arrays. R package version 2.26.0, http://dmrocke.ucdavis.edu/software.html.
@@ -274,8 +277,8 @@ class r_dataNormalization(r_base):
 
                 # estimate the parameters
                 self.call_tranest('eS','tranpar',
-                                mult="TRUE",
-                                lowessnorm="FALSE"
+                                mult=mult,
+                                lowessnorm=lowessnorm
                                 );
                 #r_statement = ('tranpar = tranest(eS, mult=TRUE)'); # Matches metabo-analyst and produces the most uniform distribution
                 #ans = robjects.r(r_statement);
@@ -306,6 +309,9 @@ class r_dataNormalization(r_base):
                             data_tmp['experiment_id'] = experiment_ids[s];
                             data_tmp['time_point'] = time_points[s];
                             data_tmp['analysis_id'] = analysis_ids[s];
+                            data_tmp['imputation_method'] = None;
+                            data_tmp['normalization_method'] = 'glog';
+                            data_tmp['normalization_ooptions'] = {'mult':"TRUE",'lowessnorm':"FALSE"};
                             data_tmp['comment_'] = None;
                             data_tmp['used_'] = True;
                             data_O.append(data_tmp);
@@ -353,7 +359,8 @@ class r_dataNormalization(r_base):
         Details
         Each element of a component of vlist corresponds to a column of mat. See vlist for an example.
         Value
-        eset An ExpressionSet object.        '''
+        eset An ExpressionSet object.
+        '''
         
         try:
             r_statement = ('%s = neweS(%s,%s)' %(es_O,matrix_I,vlist_I));
@@ -479,7 +486,8 @@ class r_dataNormalization(r_base):
         Value
         A list with components:
         lambda Estimate of transformation parameter lambda
-        alpha Estimate of transformation parameter alpha
+        alpha Estimate of transformation parameter alpha
+
                 
         '''
         try:

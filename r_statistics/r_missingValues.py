@@ -192,3 +192,104 @@ class r_missingValues(r_base):
         except Exception as e:
             print(e);
             exit(-1);
+
+    
+    def calculate_missingValues(self,data_I,n_imputations_I = 1000):
+        '''calculate missing values using a bootstrapping approach
+        as implemented in the AmeliaII R package
+        https://cran.r-project.org/web/packages/Amelia/Amelia.pdf
+        http://r.iq.harvard.edu/docs/amelia/amelia.pdf
+        1000 imputations (default) are computed and averaged to generate
+        the resulting data without missing values
+        INPUT:
+        data_I = listDict
+        n_imputations_I = integer, number of imputations
+        OUTPUT:
+        data_O = listDict
+        '''
+
+        # convert data dict to matrix filling in missing values
+        # with 'NA'
+        listdict = listDict(data_I);
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+            row_label_I='component_name',
+            column_label_I='sample_name_short',
+            value_label_I='calculated_concentration',
+            row_variables_I=['component_group_name'],
+            column_variables_I=['sample_name_abbreviation','time_point','experiment_id'],
+            data_IO=[],
+            na_str_I="NA");
+        cgn = row_variables['component_group_name'];
+        sna = column_variables['sample_name_abbreviation'];
+        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
+        # check if there were any missing values in the data set in the first place
+        mv = 0;
+        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        if mv>0:
+            # Call to R
+            try:
+                # clear the workspace
+                self.clear_workspace();
+                # convert lists to R objects
+                # concentrations_R = robjects.FloatVector(concentrations);
+                concentrations_r = '';
+                for c in concentrations:
+                    concentrations_r = (concentrations_r + ',' + str(c));
+                concentrations_r = concentrations_r[1:];
+                r_statement = ('concentrations = c(%s)' % concentrations_r);
+                ans = robjects.r(r_statement);
+                r_statement = 'concentrations_log = log(concentrations)'
+                ans = robjects.r(r_statement);
+                r_statement = ('concentrations_m = matrix(concentrations_log, nrow = %s, ncol = %s, byrow = TRUE)' %(len(cn_sorted),len(sns_sorted)));
+                ans = robjects.r(r_statement);
+                r_statement = ('a.out = amelia(concentrations_m, m=%s)' % n_imputations_I);
+                ans = robjects.r(r_statement);
+                # extract out data matrices
+                concentrations_2d = numpy.zeros((len(cn_sorted)*len(sns_sorted),n_imputations_I));
+                for n in range(n_imputations_I):
+                    cnt_data = 0;
+                    for d in ans.rx2('imputations')[0]:
+                        #NOTE: the matrix is linearized by column (opposite of how the matrix was made)
+                        concentrations_2d[cnt_data,n] = exp(d);
+                        cnt_data = cnt_data + 1;
+                # calculate the average
+                concentrations_1d_ave = numpy.zeros((len(cn_sorted)*len(sns_sorted)));
+                cnt_imputations = 0;
+                for n in range(len(cn_sorted)*len(sns_sorted)):
+                    concentrations_1d_ave[n] = numpy.average(concentrations_2d[n][:]);
+                # convert array back to dict
+                #data_O = [];
+                for c in range(len(sns_sorted)):
+                    for r in range(len(cn_sorted)):
+                        if isinstance(concentrations_1d_ave[c*len(cn_sorted)+r], (int, float)) and not numpy.isnan(concentrations_1d_ave[c*len(cn_sorted)+r]):
+                            sns_O.append(sns_sorted[c]);
+                            cn_O.append(cn_sorted[r]);
+                            cc_O.append(concentrations_1d_ave[c*len(cn_sorted)+r]);
+                            data_tmp = {};
+                            data_tmp['analysis_id'] = data_I[0]['analysis_id']
+                            data_tmp['experiment_id'] = column_variables['experiment_id'][r]
+                            data_tmp['time_point'] = column_variables['time_point'][r]
+                            data_tmp['sample_name_short'] = sns_sorted[c]
+                            data_tmp['component_name'] = cn_sorted[r]
+                            data_tmp['component_group_name'] = cgn[r]
+                            data_tmp['calculated_concentration'] = concentrations_1d_ave[c*len(cn_sorted)+r]
+                            data_tmp['calculated_concentration_units'] = data_I[0]['calculated_concentration_units']
+                            data_tmp['imputation_method']=imputation_method_I;
+                            data_tmp['imputation_options']={'n_imputations':n_imputations_I}
+                            data_O.append(data_tmp);
+
+            # expand the array
+            #concentrations_2d_ave = numpy.zeros((len(cn_sorted),len(sns_sorted))); # transpose of input
+            #for c in range(len(sns_sorted)):
+            #    for r in range(len(cn_sorted)):
+            #        concentrations_2d_ave[r][c] = concentrations_1d_ave[c*len(sns_sorted)+r];
+
+            except Exception as e:
+                print(e);
+                exit(-1);
+        else:
+            for d in data_I:
+                d['imputation_method']=None;
+
+        # reformat the matrix of element averages to dict
+        return sns_O,cn_O,cc_O;
