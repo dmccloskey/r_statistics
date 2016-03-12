@@ -216,12 +216,11 @@ class r_missingValues(r_base):
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
-            column_variables_I=['sample_name_abbreviation','time_point','experiment_id'],
+            column_variables_I=[
+                'time_point','experiment_id'],
             data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
-        sna = column_variables['sample_name_abbreviation'];
-        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
         # check if there were any missing values in the data set in the first place
         mv = 0;
         mv = listdict.count_missingValues(concentrations,na_str_I="NA");
@@ -258,13 +257,13 @@ class r_missingValues(r_base):
                 for n in range(len(cn_sorted)*len(sns_sorted)):
                     concentrations_1d_ave[n] = numpy.average(concentrations_2d[n][:]);
                 # convert array back to dict
-                #data_O = [];
+                data_O = [];
                 for c in range(len(sns_sorted)):
                     for r in range(len(cn_sorted)):
                         if isinstance(concentrations_1d_ave[c*len(cn_sorted)+r], (int, float)) and not numpy.isnan(concentrations_1d_ave[c*len(cn_sorted)+r]):
-                            sns_O.append(sns_sorted[c]);
-                            cn_O.append(cn_sorted[r]);
-                            cc_O.append(concentrations_1d_ave[c*len(cn_sorted)+r]);
+                            #sns_O.append(sns_sorted[c]);
+                            #cn_O.append(cn_sorted[r]);
+                            #cc_O.append(concentrations_1d_ave[c*len(cn_sorted)+r]);
                             data_tmp = {};
                             data_tmp['analysis_id'] = data_I[0]['analysis_id']
                             data_tmp['experiment_id'] = column_variables['experiment_id'][r]
@@ -277,19 +276,14 @@ class r_missingValues(r_base):
                             data_tmp['imputation_method']=imputation_method_I;
                             data_tmp['imputation_options']={'n_imputations':n_imputations_I}
                             data_O.append(data_tmp);
-
-            # expand the array
-            #concentrations_2d_ave = numpy.zeros((len(cn_sorted),len(sns_sorted))); # transpose of input
-            #for c in range(len(sns_sorted)):
-            #    for r in range(len(cn_sorted)):
-            #        concentrations_2d_ave[r][c] = concentrations_1d_ave[c*len(sns_sorted)+r];
-
+                # expand the array
+                #concentrations_2d_ave = numpy.zeros((len(cn_sorted),len(sns_sorted))); # transpose of input
+                #for c in range(len(sns_sorted)):
+                #    for r in range(len(cn_sorted)):
+                #        concentrations_2d_ave[r][c] = concentrations_1d_ave[c*len(sns_sorted)+r];
+                return data_O;
             except Exception as e:
                 print(e);
                 exit(-1);
         else:
-            for d in data_I:
-                d['imputation_method']=None;
-
-        # reformat the matrix of element averages to dict
-        return sns_O,cn_O,cc_O;
+            return None;
