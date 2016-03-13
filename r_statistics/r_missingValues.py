@@ -194,7 +194,7 @@ class r_missingValues(r_base):
             exit(-1);
 
     
-    def calculate_missingValues(self,data_I,n_imputations_I = 1000):
+    def calculate_missingValues(self,data_I,n_imputations_I = 1000,geometric_imputation_I=True):
         '''calculate missing values using a bootstrapping approach
         as implemented in the AmeliaII R package
         https://cran.r-project.org/web/packages/Amelia/Amelia.pdf
@@ -204,31 +204,76 @@ class r_missingValues(r_base):
         INPUT:
         data_I = listDict
         n_imputations_I = integer, number of imputations
+        geometric_imputation_I = boolean, apply a log normalization prior to imputing missing values
+                    default: True, (better performance found for data that has not been previously logx transformed)
         OUTPUT:
         data_O = listDict
         '''
 
-        # convert data dict to matrix filling in missing values
-        # with 'NA'
-        listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
-            row_label_I='component_name',
-            column_label_I='sample_name_short',
-            value_label_I='calculated_concentration',
-            row_variables_I=['component_group_name'],
-            column_variables_I=[
-                'time_point','experiment_id'],
-            data_IO=[],
-            na_str_I="NA");
-        cgn = row_variables['component_group_name'];
-        # check if there were any missing values in the data set in the first place
-        mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        ## convert data dict to matrix filling in missing values
+        ## with 'NA'
+        ##SPLIT1:
+        #listdict = listDict(data_I);
+        #concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        #    row_label_I='component_name',
+        #    column_label_I='sample_name_short',
+        #    value_label_I='calculated_concentration',
+        #    row_variables_I=['component_group_name'],
+        #    column_variables_I=[
+        #        'time_point','experiment_id'],
+        #    data_IO=[],
+        #    na_str_I="NA");
+        #cgn = row_variables['component_group_name'];
+        #tps = column_variables['time_point']
+        #eis = column_variables['experiment_id']
+        ## check if there were any missing values in the data set in the first place
+        #mv = 0;
+        #mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+
+        #SPLIT2:
+        #define constants that should probably be inputs
+        row_variables_I = ['component_name','component_group_name'];
+        column_variables_I = ['sample_name_short','time_point','experiment_id'];
+        value_label_I ='calculated_concentration';
+        na_str_I="NA";
+        #make the pandas dataframe
+        listdict_pd = pd.DataFrame(data_I);
+        listdict_pivot = listdict_pd.pivot_table(values=value_label_I,index = row_variables_I,columns = column_variables_I)
+        #check for missing values
+        mv = listdict_pivot.size - listdict_pivot.count().get_values().sum();
+        #fill values with 'NA', convert to 1d numpy array, convert to list
+        concentrations = list(listdict_pivot.fillna(na_str_I).get_values().ravel());
+        #extract out rows and column variables
+        #group = list(listdict_pd.groupby(row_variables).groups.keys());
+        #group.sort();
+        #cn_sorted = [g[0] for g in group];
+        #cgn = [g[1] for g in group];
+        row_variables = {}
+        for i,rv in enumerate(row_variables_I):
+            row_variables[rv] = [];
+            for g in listdict_pivot.index.unique():
+                row_variables[rv].append(g[i]);
+        cn_sorted = row_variables['component_name']
+        cgn = row_variables['component_group_name']
+        # columns are in the same order as they were initialized during the pivot
+        #sns_sorted = [v[0] for v in listdict_pivot.columns.get_values()];
+        #tps = [v[1] for v in listdict_pivot.columns.get_values()];
+        #eis = [v[2] for v in listdict_pivot.columns.get_values()];
+        column_variables = {}
+        for i,cv in enumerate(column_variables_I):
+            column_variables[cv] = [];
+            for g in listdict_pivot.columns.unique():
+                column_variables[cv].append(g[i]);
+        sns_sorted = column_variables['sample_name_short'];
+        tps = column_variables['time_point'];
+        eis = column_variables['experiment_id'];
+
         if mv>0:
             # Call to R
             try:
                 # clear the workspace
                 self.clear_workspace();
+                #TODO: refactor into individual function
                 # convert lists to R objects
                 # concentrations_R = robjects.FloatVector(concentrations);
                 concentrations_r = '';
@@ -237,45 +282,63 @@ class r_missingValues(r_base):
                 concentrations_r = concentrations_r[1:];
                 r_statement = ('concentrations = c(%s)' % concentrations_r);
                 ans = robjects.r(r_statement);
-                r_statement = 'concentrations_log = log(concentrations)'
-                ans = robjects.r(r_statement);
+                if geometric_imputation_I:
+                    r_statement = 'concentrations_log = log(concentrations)'
+                    ans = robjects.r(r_statement);
                 r_statement = ('concentrations_m = matrix(concentrations_log, nrow = %s, ncol = %s, byrow = TRUE)' %(len(cn_sorted),len(sns_sorted)));
                 ans = robjects.r(r_statement);
                 r_statement = ('a.out = amelia(concentrations_m, m=%s)' % n_imputations_I);
                 ans = robjects.r(r_statement);
+
+                ##SPLIT1
+                ## extract out data matrices
+                #concentrations_2d = numpy.zeros((len(cn_sorted)*len(sns_sorted),n_imputations_I));
+                #for n in range(n_imputations_I):
+                #    cnt_data = 0;
+                #    for d in ans.rx2('imputations')[0]:
+                #        #NOTE: the matrix is linearized by column (opposite of how the matrix was made)
+                #        if geometric_imputation_I:
+                #            concentrations_2d[cnt_data,n] = exp(d);
+                #        else:
+                #            concentrations_2d[cnt_data,n] = d;
+                #        cnt_data = cnt_data + 1;
+                ## calculate the average
+                #concentrations_1d_ave = numpy.zeros((len(cn_sorted)*len(sns_sorted)));
+                #cnt_imputations = 0;
+                #for n in range(len(cn_sorted)*len(sns_sorted)):
+                #    concentrations_1d_ave[n] = numpy.average(concentrations_2d[n][:]);
+
+                #SPLIT 2:
                 # extract out data matrices
-                concentrations_2d = numpy.zeros((len(cn_sorted)*len(sns_sorted),n_imputations_I));
-                for n in range(n_imputations_I):
-                    cnt_data = 0;
-                    for d in ans.rx2('imputations')[0]:
-                        #NOTE: the matrix is linearized by column (opposite of how the matrix was made)
-                        concentrations_2d[cnt_data,n] = exp(d);
-                        cnt_data = cnt_data + 1;
-                # calculate the average
-                concentrations_1d_ave = numpy.zeros((len(cn_sorted)*len(sns_sorted)));
-                cnt_imputations = 0;
-                for n in range(len(cn_sorted)*len(sns_sorted)):
-                    concentrations_1d_ave[n] = numpy.average(concentrations_2d[n][:]);
+                imputations = numpy.array([numpy.array(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
+                if geometric_imputation_I: imputations = numpy.exp(imputations);
+                concentrations_2d = numpy.mean(imputations,axis=0); #dim rows, columns
                 # convert array back to dict
                 data_O = [];
                 for c in range(len(sns_sorted)):
                     for r in range(len(cn_sorted)):
-                        if isinstance(concentrations_1d_ave[c*len(cn_sorted)+r], (int, float)) and not numpy.isnan(concentrations_1d_ave[c*len(cn_sorted)+r]):
+                        #concentration_imputed = concentrations_1d_ave[c*len(cn_sorted)+r];
+                        concentration_imputed = concentrations_2d[r,c]
+                        if isinstance(concentration_imputed, (int, float)) and not numpy.isnan(concentration_imputed):
                             #sns_O.append(sns_sorted[c]);
                             #cn_O.append(cn_sorted[r]);
                             #cc_O.append(concentrations_1d_ave[c*len(cn_sorted)+r]);
                             data_tmp = {};
                             data_tmp['analysis_id'] = data_I[0]['analysis_id']
-                            data_tmp['experiment_id'] = column_variables['experiment_id'][r]
-                            data_tmp['time_point'] = column_variables['time_point'][r]
+                            data_tmp['experiment_id'] = eis[c]
+                            data_tmp['time_point'] = tps[c]
                             data_tmp['sample_name_short'] = sns_sorted[c]
                             data_tmp['component_name'] = cn_sorted[r]
                             data_tmp['component_group_name'] = cgn[r]
-                            data_tmp['calculated_concentration'] = concentrations_1d_ave[c*len(cn_sorted)+r]
+                            data_tmp['calculated_concentration'] = concentration_imputed
                             data_tmp['calculated_concentration_units'] = data_I[0]['calculated_concentration_units']
-                            data_tmp['imputation_method']=imputation_method_I;
-                            data_tmp['imputation_options']={'n_imputations':n_imputations_I}
+                            data_tmp['imputation_method']='ameliaII';
+                            data_tmp['imputation_options']={
+                                'n_imputations':n_imputations_I,
+                                'geometric_imputation':geometric_imputation_I}
                             data_O.append(data_tmp);
+                        else:
+                            print('NaN found in AmeliaII output.');
                 # expand the array
                 #concentrations_2d_ave = numpy.zeros((len(cn_sorted),len(sns_sorted))); # transpose of input
                 #for c in range(len(sns_sorted)):

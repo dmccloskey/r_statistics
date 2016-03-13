@@ -107,7 +107,7 @@ class r_base():
             ans = robjects.r(r_statement);
             r_statement = ('require(spls)');
             ans = robjects.r(r_statement);
-        #caret (utilities for regression packages including pls and spls)
+        #caret (utilities for regression packages including pls and spls, and boosting methods)
         try:
             r_statement = ('library("caret")');
             ans = robjects.r(r_statement);
@@ -164,6 +164,7 @@ class r_base():
             r_statement = ('require(pcaMethods)');
             ans = robjects.r(r_statement);    
         #exactRankTests (package for computing exact rank tests with tied observations)
+        #TODO: switch to 'coin' package
         try:
             r_statement = ('library("exactRankTests")');
             ans = robjects.r(r_statement);
@@ -175,6 +176,71 @@ class r_base():
             r_statement = ('library("exactRankTests")');
             ans = robjects.r(r_statement);
             r_statement = ('require(exactRankTests)');
+            ans = robjects.r(r_statement);
+        #rpart (package for decision trees)
+        try:
+            r_statement = ('library("rpart")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(rpart)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("rpart",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("rpart")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(rpart)');
+            ans = robjects.r(r_statement);
+        #e1071 (package for svm, naive bayes)
+        try:
+            r_statement = ('library("e1071")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(e1071)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("e1071",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("e1071")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(e1071)');
+            ans = robjects.r(r_statement);
+        ##knn (package for K-Nearest Neighbors)
+        #try:
+        #    r_statement = ('library("knn")');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('require(knn)');
+        #    ans = robjects.r(r_statement);
+        #except:
+        #    r_statement = ('install.packages("knn",dependencies=TRUE)');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('library("knn")');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('require(knn)');
+        #    ans = robjects.r(r_statement);
+        #cluster (package for kmeans)
+        try:
+            r_statement = ('library("cluster")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(cluster)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("cluster",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("cluster")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(cluster)');
+            ans = robjects.r(r_statement);
+        #randomForest (package for randomForest)
+        try:
+            r_statement = ('library("randomForest")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(randomForest)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("randomForest",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("randomForest")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(randomForest)');
             ans = robjects.r(r_statement);
 
     def make_matrixFromList(self,list_I,nrows_I,ncolumns_I,matrix_O):
