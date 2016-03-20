@@ -120,19 +120,19 @@ class r_base():
             ans = robjects.r(r_statement);
             r_statement = ('require(caret)');
             ans = robjects.r(r_statement);   
-        #RVAideMemoire (utilities for regression packages including pls and spls)
-        try:
-            r_statement = ('library("RVAideMemoire")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(RVAideMemoire)');
-            ans = robjects.r(r_statement);
-        except:
-            r_statement = ('install.packages("RVAideMemoire",dependencies=TRUE)');
-            ans = robjects.r(r_statement);
-            r_statement = ('library("RVAideMemoire")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(RVAideMemoire)');
-            ans = robjects.r(r_statement);
+        ##RVAideMemoire (utilities for regression packages including pls and spls)
+        #try:
+        #    r_statement = ('library("RVAideMemoire")');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('require(RVAideMemoire)');
+        #    ans = robjects.r(r_statement);
+        #except:
+        #    r_statement = ('install.packages("RVAideMemoire",dependencies=TRUE)');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('library("RVAideMemoire")');
+        #    ans = robjects.r(r_statement);
+        #    r_statement = ('require(RVAideMemoire)');
+        #    ans = robjects.r(r_statement);
         #ropls (pls,opls,oplsda,plsda, pca, clustering)
         try:
             r_statement = ('library("ropls")');
@@ -203,19 +203,19 @@ class r_base():
             ans = robjects.r(r_statement);
             r_statement = ('require(e1071)');
             ans = robjects.r(r_statement);
-        ##knn (package for K-Nearest Neighbors)
-        #try:
-        #    r_statement = ('library("knn")');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('require(knn)');
-        #    ans = robjects.r(r_statement);
-        #except:
-        #    r_statement = ('install.packages("knn",dependencies=TRUE)');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('library("knn")');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('require(knn)');
-        #    ans = robjects.r(r_statement);
+        #class (package for K-Nearest Neighbors)
+        try:
+            r_statement = ('library("class")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(class)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("class",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("class")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(class)');
+            ans = robjects.r(r_statement);
         #cluster (package for kmeans)
         try:
             r_statement = ('library("cluster")');
@@ -241,6 +241,45 @@ class r_base():
             r_statement = ('library("randomForest")');
             ans = robjects.r(r_statement);
             r_statement = ('require(randomForest)');
+            ans = robjects.r(r_statement);
+        #DAAG (package for cross validation of linear models)
+        try:
+            r_statement = ('library("DAAG")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(DAAG)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("DAAG",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("DAAG")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(DAAG)');
+            ans = robjects.r(r_statement);
+        #Design (implements a boostraping formula)
+        try:
+            r_statement = ('library("Design")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(Design)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("Design",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("Design")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(Design)');
+            ans = robjects.r(r_statement);
+        #boot (package for cross validation of glm)
+        try:
+            r_statement = ('library("boot")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(boot)');
+            ans = robjects.r(r_statement);
+        except:
+            r_statement = ('install.packages("boot",dependencies=TRUE)');
+            ans = robjects.r(r_statement);
+            r_statement = ('library("boot")');
+            ans = robjects.r(r_statement);
+            r_statement = ('require(boot)');
             ans = robjects.r(r_statement);
 
     def make_matrixFromList(self,list_I,nrows_I,ncolumns_I,matrix_O):
