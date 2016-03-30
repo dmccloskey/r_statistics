@@ -983,6 +983,7 @@ class r_pls(r_base):
         try:
             r_statement = ('%s <- cor(model.matrix(%s), %s$scores, method = "%s")' %(
                 correlation_O,mvr_model_I,mvr_model_I,method))
+            #should this be "%s$loadings"?
             ans = robjects.r(r_statement);
             data_O = numpy.array(ans); #dim 1 = features, dim 2 = comps
             return data_O;

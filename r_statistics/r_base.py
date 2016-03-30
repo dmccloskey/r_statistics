@@ -255,19 +255,6 @@ class r_base():
             ans = robjects.r(r_statement);
             r_statement = ('require(DAAG)');
             ans = robjects.r(r_statement);
-        #Design (implements a boostraping formula)
-        try:
-            r_statement = ('library("Design")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(Design)');
-            ans = robjects.r(r_statement);
-        except:
-            r_statement = ('install.packages("Design",dependencies=TRUE)');
-            ans = robjects.r(r_statement);
-            r_statement = ('library("Design")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(Design)');
-            ans = robjects.r(r_statement);
         #boot (package for cross validation of glm)
         try:
             r_statement = ('library("boot")');
