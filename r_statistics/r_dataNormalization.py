@@ -192,14 +192,14 @@ class r_dataNormalization(r_base):
         2. add in optional input for calls to tranest()
         '''
 
+        #make R matrix lists
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name','calculated_concentration_units'],
             column_variables_I=['sample_name_abbreviation','experiment_id','time_point','analysis_id'],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         calculated_concentration_units = row_variables['calculated_concentration_units'];
@@ -207,31 +207,35 @@ class r_dataNormalization(r_base):
         time_points = column_variables['time_point'];
         analysis_ids = column_variables['analysis_id'];
         sna = column_variables['sample_name_abbreviation'];
-        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
-
-        #make replicate numbers for each sample abbreviation
-        # extract out replicates
-        replicates_dict = {};
-        for sns in sns_sorted:
-            replicates_dict[sns]=None;
-        cnt_reps = 0;
-        for sna_sorted in sna_unique:
-            for sns in sns_sorted:
-                for d in data_I:
-                    if d['sample_name_short'] == sns and d['sample_name_abbreviation'] == sna_sorted:
-                        replicates_dict[sns] = cnt_reps;
-                        cnt_reps+=1;
-                        break;
-            cnt_reps = 0;
-        replicates = [];
-        for s in sns_sorted:
-            replicates.append(replicates_dict[s]);
 
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        for c in concentrations:
-            if c=='NA':
-                mv += 1;
+        mv = listdict.count_missingValues_pivotTable();
+
+        #make replicate numbers for each sample abbreviation
+        listdict = listDict()
+        listdict.set_dictList({'sample_name_abbreviation':sna})
+        listdict.convert_dictList2DataFrame()
+        listdict.make_dummyIndexColumn(column_index_I='sna_index',column_label_I='sample_name_abbreviation')
+        replicates=listdict.dataFrame['sna_index'].get_values();
+        ## extract out replicates
+        #nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
+        #replicates_dict = {};
+        #for sns in sns_sorted:
+        #    replicates_dict[sns]=None;
+        #cnt_reps = 0;
+        #for sna_sorted in sna_unique:
+        #    for sns in sns_sorted:
+        #        for d in data_I:
+        #            if d['sample_name_short'] == sns and d['sample_name_abbreviation'] == sna_sorted:
+        #                replicates_dict[sns] = cnt_reps;
+        #                cnt_reps+=1;
+        #                break;
+        #    cnt_reps = 0;
+        #replicates = [];
+        #for s in sns_sorted:
+        #    replicates.append(replicates_dict[s]);
+
         if mv==0:
             # Call to R
             try:

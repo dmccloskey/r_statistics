@@ -31,20 +31,19 @@ class r_pls(r_base):
         # convert data dict to matrix filling in missing values
         # with 'NA'
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
             column_variables_I=[factor_I],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         factor = column_variables[factor_I];
-        nfactors_unique,factors_unique = listdict.get_uniqueValues(factor_I);
+        factors_unique = listdict.get_uniqueValues_list(factor_I);
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        mv = listdict.count_missingValues_pivotTable();
         if mv==0:
             # Call to R
             try:
@@ -199,20 +198,19 @@ class r_pls(r_base):
         # convert data dict to matrix filling in missing values
         # with 'NA'
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
             column_variables_I=[factor_I],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         factor = column_variables[factor_I];
-        nfactors_unique,factors_unique = listdict.get_uniqueValues(factor_I);
+        factors_unique = listdict.get_uniqueValues_list(factor_I);
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        mv = listdict.count_missingValues_pivotTable();
         if mv==0:
             # Call to R
             try:
@@ -394,20 +392,19 @@ class r_pls(r_base):
         # convert data dict to matrix filling in missing values
         # with 'NA'
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
             column_variables_I=[factor_I],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         factor = column_variables[factor_I];
-        nfactors_unique,factors_unique = listdict.get_uniqueValues(factor_I);
+        factors_unique = listdict.get_uniqueValues_list(factor_I);
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        mv = listdict.count_missingValues_pivotTable();
         if mv==0:
             # Call to R
             try:

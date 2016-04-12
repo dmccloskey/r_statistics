@@ -409,16 +409,26 @@ class r_base():
         list_I = list of floats or strings or booleans
         OUTPUT:
         vector_O = string, name of the R workspace variable
+
+        TODO:
+        add in additional/better tests for numpy types
         '''
         try:
-            if type(list_I[0])==type(1.0) or type(list_I[0])==type(1):
+            if type(list_I[0])==type(1.0) or type(list_I[0])==type(1)\
+                or str(type(list_I[0]))=="<class 'numpy.int64'>"\
+                or str(type(list_I[0]))=="<class 'numpy.int8'>"\
+                or str(type(list_I[0]))=="<class 'numpy.int16'>"\
+                or str(type(list_I[0]))=="<class 'numpy.int32'>"\
+                or str(type(list_I[0]))=="<class 'numpy.float16'>"\
+                or str(type(list_I[0]))=="<class 'numpy.float32'>"\
+                or str(type(list_I[0]))=="<class 'numpy.float64'>":
                 list_str = '';
                 for c in list_I:
                     list_str = (list_str + ',' + str(c));
                 list_str = list_str[1:];
                 r_statement = ('%s = c(%s)' % (vector_O,list_str));
                 ans = robjects.r(r_statement);
-            elif type(list_I[0])==type(''):
+            elif type(list_I[0])==type('') or str(type(list_I[0]))=="<class 'numpy.str_'>":
                 list_str = '';
                 for c in list_I:
                     list_str = (list_str + ',' + '"' + c + '"');
@@ -435,6 +445,8 @@ class r_base():
                 list_str = list_str[1:];
                 r_statement = ('%s = c(%s)' % (vector_O,list_str));
                 ans = robjects.r(r_statement);
+            else:
+                print('list type not recognized.');
         except Exception as e:
             print(e);
             exit(-1);

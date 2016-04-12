@@ -279,7 +279,7 @@ class r_missingValues(r_base):
         eis = column_variables['experiment_id']
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues_pd();
+        mv = listdict.count_missingValues_pivotTable();
 
         if mv>0:
             # Call to R
