@@ -171,27 +171,6 @@ class r_missingValues(r_base):
         except Exception as e:
             print(e);
             exit(-1);
-
-    def extract_pcaMethods_missingValues(self,
-                pcamethods_var_I,
-                imputed_O
-                ):
-        '''Imput missing data from pcamethods object
-        INPUT:
-        pcamethods_var_I = name of the R pcamethods object variable
-        OUTPUT:
-        imputed_O = R workspace variable
-        data_O = numpy array of the full dataset
-        '''
-        try:
-            r_statement = ('%s <- completeObs(%s)' %(imputed_O,pcamethods_var_I));
-            ans = robjects.r(r_statement);
-            data_O = numpy.array(ans);
-            return data_O;
-
-        except Exception as e:
-            print(e);
-            exit(-1);
     
     def calculate_missingValues(self,data_I,n_imputations_I = 1000,geometric_imputation_I=True):
         '''calculate missing values using a bootstrapping approach

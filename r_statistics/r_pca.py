@@ -179,7 +179,8 @@ class r_pca(r_correlation):
             center="TRUE",
             segments="10",
             nruncv="1",
-            crossValidation_type = "krzanowski",):
+            crossValidation_type = "krzanowski",
+            return_data_imputed_I=False):
         '''Calculate pca using various methods from pcaMethods
         Bioinformatics (2007) 23 (9): 1164-1167.
         doi: 10.1093/bioinformatics/btm069
@@ -263,7 +264,7 @@ class r_pca(r_correlation):
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
-            column_variables_I=['sample_name_abbreviation'],
+            column_variables_I=['sample_name_abbreviation','experiment_id','time_point'],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         sna = column_variables['sample_name_abbreviation'];
@@ -271,7 +272,7 @@ class r_pca(r_correlation):
         # check if there were any missing values in the data set in the first place
         mv = 0;
         mv = listdict.count_missingValues_pivotTable();
-        if mv==0:
+        if mv==0 or (mv!=0 and pca_method_I in ["svdImpute",'ppca','nipals','bpca']):
             # Call to R
             try:
                 # clear the workspace
@@ -298,7 +299,7 @@ class r_pca(r_correlation):
                         segments,
                         nruncv,
                         crossValidation_type,);
-                # get the scores and loadingsextract_pcaMethods_scoresAndLoadings(self,
+                # get the scores and loadings
                 data_scores,data_loadings = self.extract_pcaMethods_scoresAndLoadings(
                     'result',
                     'concentrations_mt',
@@ -328,11 +329,21 @@ class r_pca(r_correlation):
                     segments,
                     nruncv,
                     crossValidation_type,
-                    )
+                    );
+                if return_data_imputed_I:
+                    # get the full data set
+                    data_imputed = self.extract_pcaMethods_missingValues_listDict(
+                        pcamethods_var_I='result',
+                        imputed_O = 'concentrations_imputed',
+                        row_variables_I = row_variables,
+                        column_variables_I = column_variables
+                        );
+                    return data_scores,data_loadings,data_perf,data_imputed;
+                else:
+                    return data_scores,data_loadings,data_perf
             except Exception as e:
                 print(e);
                 exit(-1);
-            return data_scores,data_loadings,data_perf
         else:
             print('missing values found!');
     def pcaMethods_scale(self,
@@ -699,3 +710,61 @@ class r_pca(r_correlation):
         except Exception as e:
             print(e);
             exit(-1);
+
+    def extract_pcaMethods_missingValues(self,
+                pcamethods_var_I,
+                imputed_O
+                ):
+        '''Imput missing data from pcamethods object
+        INPUT:
+        pcamethods_var_I = name of the R pcamethods object variable
+        OUTPUT:
+        imputed_O = R workspace variable
+        data_O = numpy array of the full dataset
+        '''
+        try:
+            r_statement = ('%s <- completeObs(%s)' %(imputed_O,pcamethods_var_I));
+            ans = robjects.r(r_statement);
+            data_O = numpy.array(ans);
+            return data_O;
+
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_pcaMethods_missingValues_listDict(self,
+                pcamethods_var_I,
+                imputed_O,
+                row_variables_I,
+                column_variables_I,
+                ):
+        '''Extract out imputed missing values from pcaMethods as a listDict
+        '''
+        data = self.extract_pcaMethods_missingValues(
+                pcamethods_var_I,
+                imputed_O);
+        
+        try:
+            r_statement = ('%s' %('concentrations_mt'));
+            ans = robjects.r(r_statement);
+            concentrations = numpy.array(ans);
+            dif = data-concentrations
+            dif_min = min(abs(dif));
+            dif_max = max(abs(dif));
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+        data_listDict = [];
+        for r in range(data.shape[0]):
+            for c in range(data.shape[1]):
+                data_tmp = {};
+                data_tmp['sample_name_short'] = column_variables_I[r];
+                data_tmp['experiment_id'] = column_variables_I[r]; #
+                data_tmp['time_point'] = column_variables_I[r]; #
+                data_tmp['component_name'] = row_variables_I[c]; #
+                data_tmp['component_group_name'] = row_variables_I[c]; #
+                data_tmp['calculated_concentration'] = data[r,c]; #
+                data_tmp['sample_name_abbreviation'] = column_variables_I[r];
+                data_listDict.append(data_tmp);
+        return data_listDict;
