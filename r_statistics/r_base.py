@@ -1,46 +1,64 @@
 ﻿from .r_dependencies import *
 
 class r_base():
-    def __init__(self):
+    def __init__(self,R_packages=None,bioconductor_packages=None,upgrade_bioconductor=False):
         self.stats = importr('stats');
         self.tools = importr('tools');
         try:
-            self._import_RPackages();
+            if R_packages is None:
+                R_packages = ["Amelia",
+                    "mixOmics",
+                    "pls",
+                    "spls",
+                    "caret",
+                    "coin",
+                    "rpart",
+                    "e1071",
+                    "class",
+                    "cluster",
+                    "randomForest",
+                    "DAAG",
+                    "boot",
+                    "devtools"];
+            if bioconductor_packages is None:
+                bioconductor_packages = ["Biobase",
+                    "LMGene",
+                    "pcaMethods",
+                    "ropls",]
+            self.import_RPackages(R_packages,bioconductor_packages,upgrade_bioconductor);
         except Exception as e:
             print(e);
 
-    def _import_RPackages(self,
+    def import_RPackages(self,
             R_packages_I=[],
-            bioconductor_packages_I=[]
+            bioconductor_packages_I=[],
+            upgrade_bioconductor_I=False
             ):
         '''load required R packages
         NOTE: must be run as administrator if packages need to be installed!
         INPUT:
         R_packages_I = list of R packages
         bioconductor_packages_I = list of bioconductor packages
+        upgrade_bioconductor_I = boolean
         '''
 
         #lib_loc = '"C:/Users/Douglas/Documents/Douglas/R/win-library/3.0"';
         #r_statement = ('library("Amelia",lib.loc = %s)' % lib_loc);
 
-        #Amelia (missing value imputation)
-        try:
-            r_statement = ('library("Amelia")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(Amelia)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("Amelia",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("Amelia")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(Amelia)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
+        for package in R_packages_I:
+            self.library_R(package);
+            
         #Upgrade bioconductor
-        r_statement = ('source("https://bioconductor.org/biocLite.R")');
+        if upgrade_bioconductor_I:
+            self.upgrade_bioconductor();
+
+        for package in bioconductor_packages_I:
+            self.library_bioconductor(package);
+
+    def upgrade_bioconductor(self,source_I='https://bioconductor.org/biocLite.R'):
+        '''upgrade/install bioconductor'''
+        
+        r_statement = ('source("%s")'%(source_I))
         ans = robjects.r(r_statement);
         try:
             r_statement = ('biocLite("BiocUpgrade",ask=FALSE)');
@@ -48,284 +66,6 @@ class r_base():
         except:
             try:
                 r_statement = ('biocLite(ask=FALSE)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #Biobase
-        try:
-            r_statement = ('library("Biobase")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(Biobase)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('source("https://bioconductor.org/biocLite.R")');
-                ans = robjects.r(r_statement);
-                r_statement = ('biocLite("Biobase",ask=FALSE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("Biobase")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(Biobase)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #mixOmics (splsda, plsda, pca, clustering)
-        try:
-            r_statement = ('library("mixOmics")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(mixOmics)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("mixOmics",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("mixOmics")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(mixOmics)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #pls (pls, plsda, oplsda)
-        try:
-            r_statement = ('library("pls")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(pls)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("pls",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("pls")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(pls)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #spls (spls, splsda)
-        try:
-            r_statement = ('library("spls")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(spls)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("spls",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("spls")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(spls)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #caret (utilities for regression packages including pls and spls, and boosting methods)
-        try:
-            r_statement = ('library("caret")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(caret)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("caret",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("caret")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(caret)');
-                ans = robjects.r(r_statement);   
-            except Exception as e:
-                print(e);
-        ##RVAideMemoire (utilities for regression packages including pls and spls)
-        #try:
-        #    r_statement = ('library("RVAideMemoire")');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('require(RVAideMemoire)');
-        #    ans = robjects.r(r_statement);
-        #except:
-        #    r_statement = ('install.packages("RVAideMemoire",dependencies=TRUE)');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('library("RVAideMemoire")');
-        #    ans = robjects.r(r_statement);
-        #    r_statement = ('require(RVAideMemoire)');
-        #    ans = robjects.r(r_statement);
-        #ropls (pls,opls,oplsda,plsda, pca, clustering)
-        try:
-            r_statement = ('library("ropls")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(ropls)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('source("https://bioconductor.org/biocLite.R")');
-                ans = robjects.r(r_statement);
-                r_statement = ('biocLite("ropls",ask=FALSE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("ropls")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(ropls)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #pcaMethods (missing value and pca analysis)
-        try:
-            r_statement = ('library("pcaMethods")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(pcaMethods)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('source("https://bioconductor.org/biocLite.R")');
-                ans = robjects.r(r_statement);
-                r_statement = ('biocLite("pcaMethods",ask=FALSE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("pcaMethods")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(pcaMethods)');
-                ans = robjects.r(r_statement);    
-            except Exception as e:
-                print(e);
-        #exactRankTests (package for computing exact rank tests with tied observations)
-        #TODO: switch to 'coin' package
-        try:
-            r_statement = ('library("exactRankTests")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(exactRankTests)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("exactRankTests",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("exactRankTests")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(exactRankTests)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #rpart (package for decision trees)
-        try:
-            r_statement = ('library("rpart")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(rpart)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("rpart",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("rpart")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(rpart)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #e1071 (package for svm, naive bayes)
-        try:
-            r_statement = ('library("e1071")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(e1071)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("e1071",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("e1071")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(e1071)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #class (package for K-Nearest Neighbors)
-        try:
-            r_statement = ('library("class")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(class)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("class",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("class")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(class)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #cluster (package for kmeans)
-        try:
-            r_statement = ('library("cluster")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(cluster)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("cluster",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("cluster")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(cluster)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #randomForest (package for randomForest)
-        try:
-            r_statement = ('library("randomForest")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(randomForest)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("randomForest",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("randomForest")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(randomForest)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #DAAG (package for cross validation of linear models)
-        try:
-            r_statement = ('library("DAAG")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(DAAG)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("DAAG",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("DAAG")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(DAAG)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #boot (package for cross validation of glm)
-        try:
-            r_statement = ('library("boot")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(boot)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('install.packages("boot",dependencies=TRUE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("boot")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(boot)');
-                ans = robjects.r(r_statement);
-            except Exception as e:
-                print(e);
-        #LMGene (glog)
-        try:
-            r_statement = ('library("LMGene")');
-            ans = robjects.r(r_statement);
-            r_statement = ('require(LMGene)');
-            ans = robjects.r(r_statement);
-        except:
-            try:
-                r_statement = ('source("https://bioconductor.org/biocLite.R")');
-                ans = robjects.r(r_statement);
-                r_statement = ('biocLite("LMGene",ask=FALSE)');
-                ans = robjects.r(r_statement);
-                r_statement = ('library("LMGene")');
-                ans = robjects.r(r_statement);
-                r_statement = ('require(LMGene)');
                 ans = robjects.r(r_statement);
             except Exception as e:
                 print(e);
