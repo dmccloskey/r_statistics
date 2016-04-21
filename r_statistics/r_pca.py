@@ -180,16 +180,26 @@ class r_pca(r_correlation):
             segments="10",
             nruncv="1",
             crossValidation_type = "krzanowski",
-            return_data_imputed_I=False):
+            return_data_imputed_I=False,
+            geometric_imputation_I=False):
         '''Calculate pca using various methods from pcaMethods
         Bioinformatics (2007) 23 (9): 1164-1167.
         doi: 10.1093/bioinformatics/btm069
         INPUT:
-        method_I
-        nPcs
+        data_I = listDict
+        pca_model_I = string
+        pca_method_I = string, pca method
+        OPTIONAL INPUT for pcaMethods:
+        imputeMissingValues
+        ncomps = nPcs
         scale
         center
         completeObs
+        
+        OPTIONAL INPUT for missing value imputation
+        return_data_imputed_I = boolean, return only imputed data
+        geometric_imputation_I = boolean, log normalize values before PCA
+            required to ensure only positive values are returned
 
         OUTPUT:
         scores "matrix", the calculated scores
@@ -281,6 +291,10 @@ class r_pca(r_correlation):
                 self.make_matrixFromList(concentrations,len(cn_sorted),len(sns_sorted),'concentrations_m');
                 # convert to the transpose
                 self.transpose_matrix('concentrations_mt','concentrations_m');
+                # OPTIONAL: impute in geometric space
+                if geometric_imputation_I:
+                    r_statement = 'concentrations_mt = log(concentrations_mt)'
+                    ans = robjects.r(r_statement);
                 #scale/center the data
                 #self.pcaMethods_scale('concentrations_mt',
                 #        'concentrations_scaled',
@@ -313,34 +327,37 @@ class r_pca(r_correlation):
                     center,
                     );
                 # get the validation
-                data_perf = self.extract_pcaMethods_crossValidation(
-                    'result',
-                    'concentrations_mt',
-                    pca_model_I,
-                    pca_method_I,
-                    sns_sorted,
-                    sna,sna_unique,
-                    cn_sorted,
-                    cgn,
-                    scale,
-                    center,
-                    ncomps,
-                    cv,
-                    segments,
-                    nruncv,
-                    crossValidation_type,
-                    );
+                if cv != "none":
+                    data_perf = self.extract_pcaMethods_crossValidation(
+                        'result',
+                        'concentrations_mt',
+                        pca_model_I,
+                        pca_method_I,
+                        sns_sorted,
+                        sna,sna_unique,
+                        cn_sorted,
+                        cgn,
+                        scale,
+                        center,
+                        ncomps,
+                        cv,
+                        segments,
+                        nruncv,
+                        crossValidation_type,
+                        );
+                    return data_scores,data_loadings,data_perf;
                 if return_data_imputed_I:
                     # get the full data set
                     data_imputed = self.extract_pcaMethods_missingValues_listDict(
                         pcamethods_var_I='result',
                         imputed_O = 'concentrations_imputed',
                         row_variables_I = row_variables,
-                        column_variables_I = column_variables
+                        column_variables_I = column_variables,
+                        geometric_imputation_I = geometric_imputation_I
                         );
-                    return data_scores,data_loadings,data_perf,data_imputed;
+                    return data_imputed;
                 else:
-                    return data_scores,data_loadings,data_perf
+                    return data_scores,data_loadings;
             except Exception as e:
                 print(e);
                 exit(-1);
@@ -737,34 +754,36 @@ class r_pca(r_correlation):
                 imputed_O,
                 row_variables_I,
                 column_variables_I,
+                geometric_imputation_I=False
                 ):
         '''Extract out imputed missing values from pcaMethods as a listDict
         '''
         data = self.extract_pcaMethods_missingValues(
                 pcamethods_var_I,
                 imputed_O);
+        if geometric_imputation_I: data = numpy.exp(data);
         
-        try:
-            r_statement = ('%s' %('concentrations_mt'));
-            ans = robjects.r(r_statement);
-            concentrations = numpy.array(ans);
-            dif = data-concentrations
-            dif_min = min(abs(dif));
-            dif_max = max(abs(dif));
-        except Exception as e:
-            print(e);
-            exit(-1);
+        #try:
+        #    r_statement = ('%s' %('concentrations_mt'));
+        #    ans = robjects.r(r_statement);
+        #    concentrations = numpy.array(ans);
+        #    dif = data-concentrations
+        #    dif_min = min(abs(dif));
+        #    dif_max = max(abs(dif));
+        #except Exception as e:
+        #    print(e);
+        #    exit(-1);
 
         data_listDict = [];
         for r in range(data.shape[0]):
             for c in range(data.shape[1]):
                 data_tmp = {};
-                data_tmp['sample_name_short'] = column_variables_I[r];
-                data_tmp['experiment_id'] = column_variables_I[r]; #
-                data_tmp['time_point'] = column_variables_I[r]; #
-                data_tmp['component_name'] = row_variables_I[c]; #
-                data_tmp['component_group_name'] = row_variables_I[c]; #
+                data_tmp['sample_name_short'] = column_variables_I['sample_name_short'][r];
+                data_tmp['experiment_id'] = column_variables_I['experiment_id'][r]; #
+                data_tmp['time_point'] = column_variables_I['time_point'][r]; #
+                data_tmp['component_name'] = row_variables_I['component_name'][c]; #
+                data_tmp['component_group_name'] = row_variables_I['component_group_name'][c]; #
                 data_tmp['calculated_concentration'] = data[r,c]; #
-                data_tmp['sample_name_abbreviation'] = column_variables_I[r];
+                data_tmp['sample_name_abbreviation'] = column_variables_I['sample_name_abbreviation'][r];
                 data_listDict.append(data_tmp);
         return data_listDict;

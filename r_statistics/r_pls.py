@@ -401,7 +401,12 @@ class r_pls(r_base):
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         factor = column_variables[factor_I];
-        factors_unique = listdict.get_uniqueValues_list(factor_I);
+        factors_unique = listdict.get_uniqueValues_list(factor);
+        # check the ncomp
+        if len(factors_unique)<ncomp:
+            ncomp = len(factors_unique);
+        if len(factor)<segments:
+            segments = int(0.75*len(factor));
         # check if there were any missing values in the data set in the first place
         mv = 0;
         mv = listdict.count_missingValues_pivotTable();

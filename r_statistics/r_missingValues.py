@@ -172,7 +172,10 @@ class r_missingValues(r_base):
             print(e);
             exit(-1);
     
-    def calculate_missingValues(self,data_I,n_imputations_I = 1000,geometric_imputation_I=True):
+    def calculate_missingValues(self,data_I,
+                n_imputations_I = 1000,
+                geometric_imputation_I=True,
+                transpose_imputation_I=False):
         '''calculate missing values using a bootstrapping approach
         as implemented in the AmeliaII R package
         https://cran.r-project.org/web/packages/Amelia/Amelia.pdf
@@ -271,6 +274,10 @@ class r_missingValues(r_base):
                 if geometric_imputation_I:
                     r_statement = 'concentrations_m = log(concentrations_m)'
                     ans = robjects.r(r_statement);
+                # OPTIONAL: impute using the transpose
+                # TODO: test...
+                if transpose_imputation_I:
+                    self.transpose_matrix(self,'concentrations_m','concentrations_m')
                 #call AmeliaII
                 self.calculate_missingValues_ameliaII(
                         data_I='concentrations_m',
