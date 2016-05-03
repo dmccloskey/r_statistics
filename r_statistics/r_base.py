@@ -6,10 +6,15 @@ class r_base():
         self.tools = importr('tools');
         try:
             if R_packages is None:
-                R_packages = ["Amelia",
+                R_packages = [
+                    "devtools",
+                    "Amelia",
                     "mixOmics",
                     "pls",
                     "spls",
+                    #"nlme",
+                    #"lme4",
+                    #"pbkrtest",
                     "caret",
                     "coin",
                     "rpart",
@@ -19,12 +24,14 @@ class r_base():
                     "randomForest",
                     "DAAG",
                     "boot",
-                    "devtools"];
+                    ];
             if bioconductor_packages is None:
                 bioconductor_packages = ["Biobase",
                     "LMGene",
                     "pcaMethods",
-                    "ropls",]
+                    "ropls",
+                    "topGO",
+                    ]
             self.import_RPackages(R_packages,bioconductor_packages,upgrade_bioconductor);
         except Exception as e:
             print(e);
@@ -214,12 +221,14 @@ class r_base():
         except Exception as e:
             print(e);
             exit(-1);
-    def calculate_pValueCorrected(self,pvalue_I,pvalue_O,method_I = "bonferroni"):
+    def calculate_pValueCorrected(self,pvalue_I,pvalue_O,method_I = "bonferroni",n_I = 100):
         '''calculate the corrected p-value
         INPUT:
         pvalue_I = float, uncorrected p-value
                    OR string, name of the r-workspace variable
         method_I = string, method name
+        n_I = float, if type(pvalue_I) == float,
+            the number of observations to use for the correction should be provided
         pvalue_O = string, name of the r-workspace variable
         OUTPUT:
         pvalue_corrected_O = float, corrected p-value
@@ -235,11 +244,11 @@ class r_base():
         pvalue_corrected_O = None;
         try:
             if type(pvalue_I)==type(''):
-                r_statement = ('%s = p.adjust(%s, method = "%s"' %(pvalue_O,pvalue_I,method_I)); 
+                r_statement = ('%s = p.adjust(%s, method = "%s")' %(pvalue_O,pvalue_I,method_I)); 
             else:
-                r_statement = ('%s = p.adjust(as.numeric(%s), method = "%s")' %(pvalue_O,pvalue_I,method_I)); 
+                r_statement = ('%s = p.adjust(as.numeric(%s), method = "%s", n = as.numeric(%s))' %(pvalue_O,pvalue_I,method_I, n_I)); 
             ans = robjects.r(r_statement);
-            pvalue_corrected_O = ans[0]; 
+            pvalue_corrected_O = np.array(ans); 
         except Exception as e:
             print(e);
             exit(-1);
@@ -294,6 +303,50 @@ class r_base():
                 ans = robjects.r(r_statement);
             else:
                 print('list type not recognized.');
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def make_dataFrameFromLists(self,
+            labels_I=[],
+            dataFrame_O = 'dF',
+            ):
+        '''make an R dataFrame
+        INPUT:
+        labels_I = list of R workspace list variable names
+        dataFrame_O = string, name of the R workspace dataFrame
+        OUTPUT:
+        '''
+        try:
+            #convert to Data Frame
+            list_str = ','.join(labels_I);
+            r_statement = ('%s = data.frame(%s)'%(dataFrame_O,list_str));
+            ans = robjects.r(r_statement);
+
+            #name the data frame columns
+            self.make_vectorFromList(labels_I,'list_c');
+            r_statement = ('names(%s) = list_c'%(dataFrame_O));
+            ans = robjects.r(r_statement);
+
+            ##attach the data frame
+            #r_statement = ('attach(%s)'%(dataFrame_O));
+            #ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def make_namedVectorFromDict(self, dict_I,
+                namedVector_O = 'namedVector'):
+        """Call R to create a named vector from an input dictionary.
+        """
+        #return robjects.r.c(**dict)
+        try:
+            self.make_vectorFromList(list(dict_I.values()),namedVector_O);
+            self.make_vectorFromList(list(dict_I.keys()),'k1');
+            r_statement = ('names(%s) = k1'%(namedVector_O));
+            ans = robjects.r(r_statement);
+
+            self.remove_workspaceVariables(['k1']);
         except Exception as e:
             print(e);
             exit(-1);

@@ -64,13 +64,13 @@ class r_anova(r_base):
                 n = None;
                 r_statement = ('tapply(concentrations_v,sna_v,mean)'); # calculate the mean
                 ans = robjects.r(r_statement);
-                mean = numpy.array(ans);
+                mean = np.array(ans);
                 r_statement = ('tapply(concentrations_v,sna_v,var)'); # calculate the variance
                 ans = robjects.r(r_statement);
-                var = numpy.array(ans);
+                var = np.array(ans);
                 r_statement = ('tapply(concentrations_v,sna_v,length)'); # calculate the # of samples
                 ans = robjects.r(r_statement);
-                n = numpy.array(ans);
+                n = np.array(ans);
                 #convert to Data Frame
                 r_statement = ('dF = data.frame(concentrations_v,sna_v)');
                 ans = robjects.r(r_statement);
@@ -91,7 +91,7 @@ class r_anova(r_base):
                 postHocTest = [x for x in ans[0].rownames];
                 # ans[0].colnames
                 # ['diff', 'lwr', 'upr', 'p adj']
-                postHocTest_pvalue = [x for x in numpy.array(ans[0])[:,3]];
+                postHocTest_pvalue = [x for x in np.array(ans[0])[:,3]];
                 postHocTest_description = 'TukeyHSD'
                 # convert array back to dict
                 data_anova = [];
@@ -147,3 +147,91 @@ class r_anova(r_base):
                 print(e);
                 exit(-1);
         return data_anova,data_pairwise;
+
+    def calculate_aov(self,
+            function_I = 'concentrations ~ sna',
+            dataFrame_I = 'dF',
+            aov_O = 'aov.out',
+            ):
+        '''call R aov
+        INPUT:
+        function_I = string or R workspace lm variable
+        dataFrame_I = string, R workspace dataframe
+        aov_O = string, name of the R aov output variable
+        '''
+        try:
+            # call anova
+            r_statement = ('%s = aov(%s, data=%s)'%(aov_O,function_I,dataFrame_I));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extraction_aov(self,
+            aov_I = 'aov.out'):
+        '''extract aov output
+        INPUT:
+        aov_I = string, R aov workspace variable
+        OUTPUT:
+        f_stat = float
+        pvalue = float
+        '''
+        try:
+            # anova summary
+            r_statement = ('summary(%s)'%(aov_I));
+            ans = robjects.r(r_statement);
+            # other attributes available: ['Df', 'Sum Sq', 'Mean Sq', 'F value', 'Pr(>F)']
+            f_stat = ans[0].rx2('F value')[0] # f_value
+            pvalue = ans[0].rx2('Pr(>F)')[0] # pvalue
+            return f_stat,pvalue;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def calculate_tukeyHSD(self,
+        aov_I='aov.out',
+        ci_level_I = 0.95,
+        tukeyhsd_O='tukeyhsd'):
+        '''call R TukeyHSD
+        INPUT:
+        aov_I = R workspace aov output
+        tukeyhsd_O = string, name of the R TukeyHSD output variable
+        OUTPUT:
+        '''
+        try:
+            # call anova
+            r_statement = ('%s = TukeyHSD(%s, conf.level = %s)'%(tukeyhsd_O,aov_I,ci_level_I));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_tukeyHSD(self,
+        tukeyhsd_I='tukeyhsd'):
+        '''call R TukeyHSD
+        INPUT:
+        tukeyhsd_I = string, name of the R TukeyHSD output variable
+        OUTPUT:
+        diff
+        lb
+        ub
+        pvalue
+        '''
+        try:
+            # call anova
+            r_statement = ('%s'%(tukeyhsd_I));
+            ans = robjects.r(r_statement);
+
+            labels = [x for x in ans[0].rownames];
+            # ans[0].colnames
+            # ['diff', 'lwr', 'upr', 'p adj']
+            
+            postHocTest_diff = np.array(ans[0])[:,0];
+            postHocTest_lb = np.array(ans[0])[:,1];
+            postHocTest_ub = np.array(ans[0])[:,2];
+            postHocTest_pvalue = np.array(ans[0])[:,3];
+            #postHocTest_description = 'TukeyHSD'
+            return postHocTest_diff,postHocTest_lb,postHocTest_ub,postHocTest_pvalue,labels;
+        except Exception as e:
+            print(e);
+            exit(-1);

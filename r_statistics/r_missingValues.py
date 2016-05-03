@@ -63,7 +63,7 @@ class r_missingValues(r_base):
                 r_statement = ('a.out = amelia(concentrations_m, m=%s)' % n_imputations_I);
                 ans = robjects.r(r_statement);
                 # extract out data matrices
-                concentrations_2d = numpy.zeros((len(cgn_sorted)*len(sns_sorted),n_imputations_I));
+                concentrations_2d = np.zeros((len(cgn_sorted)*len(sns_sorted),n_imputations_I));
                 for n in range(n_imputations_I):
                     cnt_data = 0;
                     for d in ans.rx2('imputations')[0]:
@@ -71,10 +71,10 @@ class r_missingValues(r_base):
                         concentrations_2d[cnt_data,n] = exp(d);
                         cnt_data = cnt_data + 1;
                 # calculate the average
-                concentrations_1d_ave = numpy.zeros((len(cgn_sorted)*len(sns_sorted)));
+                concentrations_1d_ave = np.zeros((len(cgn_sorted)*len(sns_sorted)));
                 cnt_imputations = 0;
                 for n in range(len(cgn_sorted)*len(sns_sorted)):
-                    concentrations_1d_ave[n] = numpy.average(concentrations_2d[n][:]);
+                    concentrations_1d_ave[n] = np.average(concentrations_2d[n][:]);
                 # convert array back to dict
                 #data_O = [];
                 for c in range(len(sns_sorted)):
@@ -84,13 +84,13 @@ class r_missingValues(r_base):
                         #data_tmp['component_name'] = cgn_sorted[r]
                         #data_tmp['calculated_concentration'] = concentrations_1d_ave[c*len(sns_sorted)+r];
                         #data_O.append(data_tmp);
-                        if isinstance(concentrations_1d_ave[c*len(cgn_sorted)+r], (int, float)) and not numpy.isnan(concentrations_1d_ave[c*len(cgn_sorted)+r]):
+                        if isinstance(concentrations_1d_ave[c*len(cgn_sorted)+r], (int, float)) and not np.isnan(concentrations_1d_ave[c*len(cgn_sorted)+r]):
                             sns_O.append(sns_sorted[c]);
                             cn_O.append(cgn_sorted[r]);
                             cc_O.append(concentrations_1d_ave[c*len(cgn_sorted)+r]);
 
             # expand the array
-            #concentrations_2d_ave = numpy.zeros((len(cgn_sorted),len(sns_sorted))); # transpose of input
+            #concentrations_2d_ave = np.zeros((len(cgn_sorted),len(sns_sorted))); # transpose of input
             #for c in range(len(sns_sorted)):
             #    for r in range(len(cgn_sorted)):
             #        concentrations_2d_ave[r][c] = concentrations_1d_ave[c*len(sns_sorted)+r];
@@ -222,7 +222,7 @@ class r_missingValues(r_base):
         #listdict_pivot = listdict_pd.pivot_table(values=value_label_I,index = row_variables_I,columns = column_variables_I)
         ##check for missing values
         #mv = listdict_pivot.size - listdict_pivot.count().get_values().sum();
-        ##fill values with 'NA', convert to 1d numpy array, convert to list
+        ##fill values with 'NA', convert to 1d np array, convert to list
         #concentrations1 = list(listdict_pivot.fillna(na_str_I).get_values().ravel());
         ##extract out rows and column variables
         ##group = list(listdict_pd.groupby(row_variables).groups.keys());
@@ -295,7 +295,7 @@ class r_missingValues(r_base):
                 for c in range(len(sns_sorted)):
                     for r in range(len(cn_sorted)):
                         concentration_imputed = concentrations_2d[r,c]
-                        if isinstance(concentration_imputed, (int, float)) and not numpy.isnan(concentration_imputed):
+                        if isinstance(concentration_imputed, (int, float)) and not np.isnan(concentration_imputed):
                             data_tmp = {};
                             data_tmp['analysis_id'] = data_I[0]['analysis_id']
                             data_tmp['experiment_id'] = eis[c]
@@ -368,16 +368,16 @@ class r_missingValues(r_base):
         INPUT:
         ameliaII_object_I = name of the R workspace variable to contain the output of amelia
         OUTPUT:
-        data_O = numpy array of dim 2 of the imputed matrix
+        data_O = np array of dim 2 of the imputed matrix
         '''
         data_O = None;
         try:
             r_statement = ('%s' % (ameliaII_object_I));
             ans = robjects.r(r_statement);
             # extract out data matrices
-            imputations = numpy.array([numpy.array(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
-            if geometric_imputation_I: imputations = numpy.exp(imputations);
-            data_O = numpy.mean(imputations,axis=0); #dim rows, columns
+            imputations = np.array([np.array(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
+            if geometric_imputation_I: imputations = np.exp(imputations);
+            data_O = np.mean(imputations,axis=0); #dim rows, columns
         except Exception as e:
             print(e);
             exit(-1);

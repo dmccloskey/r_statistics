@@ -45,14 +45,14 @@ class r_svd(r_base):
         try:
             r_statement = ('%s$u' %(data_var_I))
             ans = robjects.r(r_statement);
-            u = numpy.array(ans);
+            u = np.array(ans);
             #r_statement = ('diag(%s$d)' %(data_var_I))
             r_statement = ('%s$d' %(data_var_I))
             ans = robjects.r(r_statement);
-            d = numpy.array(ans);
+            d = np.array(ans);
             r_statement = ('%s$v' %(data_var_I))
             ans = robjects.r(r_statement);
-            v = numpy.array(ans);
+            v = np.array(ans);
             return u,d,v;
         except Exception as e:
             print(e);
@@ -84,20 +84,19 @@ class r_svd(r_base):
         # convert data dict to matrix filling in missing values
         # with 'NA'
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
             column_variables_I=['sample_name_abbreviation'],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         sna = column_variables['sample_name_abbreviation'];
-        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
+        sna_unique = listdict.get_uniqueValues_list(sna);
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        mv = listdict.count_missingValues_pivotTable();
         if mv==0:
             # Call to R
             try:
@@ -120,13 +119,13 @@ class r_svd(r_base):
                 #plot(resRobSvd$v[,1], resRobSvdOut$v[,1])
                 #s$u %*% D %*% t(s$v) #  X = U D V'
                 #robjects.r('resSVD$u %*% diag(resSVD$d) %*% t(resSVD$v)')
-                #import numpy as np
+                #import np as np
                 #import matplotlib.pyplot as plt
 
                 #plt.scatter(v[:,1], vr[:,1]);
                 #plt.show()
-                #x = numpy.array(robjects.r('concentrations_mt'))
-                #xsvd = numpy.multiply(numpy.multiply(u,numpy.diag(d)),numpy.transpose(v));
+                #x = np.array(robjects.r('concentrations_mt'))
+                #xsvd = np.multiply(np.multiply(u,np.diag(d)),np.transpose(v));
 
             except Exception as e:
                 print(e);
@@ -143,20 +142,19 @@ class r_svd(r_base):
         # convert data dict to matrix filling in missing values
         # with 'NA'
         listdict = listDict(data_I);
-        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList(
+        concentrations,cn_sorted,sns_sorted,row_variables,column_variables = listdict.convert_listDict2dataMatrixList_pd(
             row_label_I='component_name',
             column_label_I='sample_name_short',
             value_label_I='calculated_concentration',
             row_variables_I=['component_group_name'],
             column_variables_I=['sample_name_abbreviation'],
-            data_IO=[],
             na_str_I="NA");
         cgn = row_variables['component_group_name'];
         sna = column_variables['sample_name_abbreviation'];
-        nsna_unique,sna_unique = listdict.get_uniqueValues('sample_name_abbreviation');
+        sna_unique = listdict.get_uniqueValues_list(sna);
         # check if there were any missing values in the data set in the first place
         mv = 0;
-        mv = listdict.count_missingValues(concentrations,na_str_I="NA");
+        mv = listdict.count_missingValues_pivotTable();
         if mv==0:
             # Call to R
             try:
@@ -249,9 +247,9 @@ class r_svd(r_base):
         d_fraction
         d_fraction_cumulative
         '''
-        d_fraction = numpy.zeros_like(d);
-        d_fraction_cumulative = numpy.zeros_like(d);
-        d_total = numpy.sum(d);
+        d_fraction = np.zeros_like(d);
+        d_fraction_cumulative = np.zeros_like(d);
+        d_total = np.sum(d);
         for i in range(d.shape[0]):
             fraction = d[i]/d_total;
             if i==0:

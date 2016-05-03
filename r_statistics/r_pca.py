@@ -127,12 +127,12 @@ class r_pca(r_correlation):
                 ans = robjects.r(r_statement);
                 r_statement = ('summary(pc)')
                 ans = robjects.r(r_statement);
-                importance = numpy.array(ans.rx2('importance'))
-                stdev = numpy.array(ans.rx2('sdev')) # or importance[0,:]
+                importance = np.array(ans.rx2('importance'))
+                stdev = np.array(ans.rx2('sdev')) # or importance[0,:]
                 var_proportion = importance[1,:]
                 var_cumulative = importance[2,:]
-                loadings = numpy.array(ans.rx2('rotation')) #nrow = mets x ncol = loadings axis
-                scores = numpy.array(ans.rx2('x')) #nrow = samples x ncol = pc axis
+                loadings = np.array(ans.rx2('rotation')) #nrow = mets x ncol = loadings axis
+                scores = np.array(ans.rx2('x')) #nrow = samples x ncol = pc axis
                 # extract out scores
                 data_scores = [];
                 cnt=0;
@@ -468,8 +468,8 @@ class r_pca(r_correlation):
             r_statement = ('%s <- kEstimate(%s, method="%s", evalPcs=1:%s, segs=%s, em="%s", nruncv=%s, allVariables = TRUE)' %(
                 output_var_O,data_var_I,pca_method_I,ncomps,segments,em,nruncv));
             ans = robjects.r(r_statement);
-            error = numpy.array(ans.rx2('eError')) #estimated error NRMSEP
-            verror = numpy.array(ans.rx2('variableWiseError'))
+            error = np.array(ans.rx2('eError')) #estimated error NRMSEP
+            verror = np.array(ans.rx2('variableWiseError'))
             r_statement = ('print(%s$bestNPcs)'%output_var_O)
             ans = robjects.r(r_statement);
             return error;
@@ -502,11 +502,11 @@ class r_pca(r_correlation):
             # get the loadings
             r_statement = ('result_loadings <- loadings(%s)' %(pcaMethod_model_I))
             ans = robjects.r(r_statement);
-            loadings_x = numpy.array(ans); #dim 1 = features, dim 2 = comps
+            loadings_x = np.array(ans); #dim 1 = features, dim 2 = comps
             #get the scores
             r_statement = ('result_scores <- scores(%s)' %(pcaMethod_model_I))
             ans = robjects.r(r_statement);
-            scores_x = numpy.array(ans); #dim 1 = samples, dim 2 = comp
+            scores_x = np.array(ans); #dim 1 = samples, dim 2 = comp
             #get the scores stdev
             var_proportion,var_cumulative = self.calculate_pcaMethods_explainedVariance(pcaMethod_model_I);
             #TODO
@@ -591,11 +591,11 @@ class r_pca(r_correlation):
             #get the r2 values
             r_statement = ('result_R2cum <- R2cum(%s)' %(pcaMethod_model_I))
             ans = robjects.r(r_statement);
-            r2 = numpy.array(ans); #dim 1 = samples, dim 2 = comp
+            r2 = np.array(ans); #dim 1 = samples, dim 2 = comp
             # get the q2
             r_statement = ('result_cvstat <- cvstat(%s)' %(pcaMethod_model_I))
             ans = robjects.r(r_statement);
-            q2 = numpy.array(ans);
+            q2 = np.array(ans);
             # get the error estimates
             nrmsep = self.pcaMethod_kEstimate(
                     data_var_I,
@@ -605,7 +605,7 @@ class r_pca(r_correlation):
                     "nrmsep",
                     segments,
                     nruncv);
-            msep = numpy.square(nrmsep);
+            msep = np.square(nrmsep);
             
             data_perf = [];
             for i in range(len(q2)): #model
@@ -650,13 +650,13 @@ class r_pca(r_correlation):
             #get the scores stdev
             r_statement = ('result_sDev <- sDev(%s)' %(pcaMethod_model_I))
             ans = robjects.r(r_statement);
-            scores_x_stdev = numpy.array(ans); #dim 1 = comp
-            scores_x_var = numpy.square(scores_x_stdev)
+            scores_x_stdev = np.array(ans); #dim 1 = comp
+            scores_x_var = np.square(scores_x_stdev)
             #scores_x_stdev_total = scores_x_stdev.sum();
             scores_x_var_total = scores_x_var.sum();
             ##var_ex = (1-(var_x_total[0]-var_x)/var_x_total[0])*100
-            var_proportion = numpy.zeros_like(scores_x_stdev)
-            var_cumulative = numpy.zeros_like(scores_x_stdev);
+            var_proportion = np.zeros_like(scores_x_stdev)
+            var_cumulative = np.zeros_like(scores_x_stdev);
             for i in range(len(var_proportion)):
                 #var_ex = 1-(scores_x_stdev_total-scores_x_stdev[i])/scores_x_stdev_total;
                 var_ex = 1-(scores_x_var_total-scores_x_var[i])/scores_x_var_total;
@@ -737,12 +737,12 @@ class r_pca(r_correlation):
         pcamethods_var_I = name of the R pcamethods object variable
         OUTPUT:
         imputed_O = R workspace variable
-        data_O = numpy array of the full dataset
+        data_O = np array of the full dataset
         '''
         try:
             r_statement = ('%s <- completeObs(%s)' %(imputed_O,pcamethods_var_I));
             ans = robjects.r(r_statement);
-            data_O = numpy.array(ans);
+            data_O = np.array(ans);
             return data_O;
 
         except Exception as e:
@@ -761,12 +761,12 @@ class r_pca(r_correlation):
         data = self.extract_pcaMethods_missingValues(
                 pcamethods_var_I,
                 imputed_O);
-        if geometric_imputation_I: data = numpy.exp(data);
+        if geometric_imputation_I: data = np.exp(data);
         
         #try:
         #    r_statement = ('%s' %('concentrations_mt'));
         #    ans = robjects.r(r_statement);
-        #    concentrations = numpy.array(ans);
+        #    concentrations = np.array(ans);
         #    dif = data-concentrations
         #    dif_min = min(abs(dif));
         #    dif_max = max(abs(dif));

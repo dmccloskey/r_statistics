@@ -80,20 +80,20 @@ class r_pls(r_base):
                 variates = ans.rx2("variates"); 
                 #get the X and Y variates (i.e, scores in pca)
                 #columns of X are the principle variants
-                scores_x = numpy.array(variates.rx2('X'));# variates_x.shape
-                scores_y = numpy.array(variates.rx2('Y'));# variates_y.shape
+                scores_x = np.array(variates.rx2('X'));# variates_x.shape
+                scores_y = np.array(variates.rx2('Y'));# variates_y.shape
                 #get the loadings
                 loadings = ans.rx2("loadings")
                 #get the X and Y loadings
                 #columns of X are the principle loadings
-                loadings_x = numpy.array(loadings.rx2('X'))
-                loadings_y = numpy.array(loadings.rx2('Y'));# variates_y.shape
+                loadings_x = np.array(loadings.rx2('X'))
+                loadings_y = np.array(loadings.rx2('Y'));# variates_y.shape
                 # VIP
                 r_statement = ('result_vip = vip(result)');
                 ans = robjects.r(r_statement);
                 # get the VIPs
                 #columns of vip are the vip's of the loadings
-                vip = numpy.array(ans);
+                vip = np.array(ans);
                 # cross validate the plsda model
                 r_statement = ('result_perf = perf(result, method.predict="%s",\
                     validation="%s", folds=%s, progressBar = %s, near.zero.var=%s)'\
@@ -103,8 +103,8 @@ class r_pls(r_base):
                 # columns error_rate are the principle variants
                 # rows are the methods used
                 #      "all" = "max.dist","centroids.dist", "mahalanobis.dist"
-                error_rate = numpy.array(ans.rx2('error.rate'));
-                error_rate_var = numpy.zeros_like(error_rate);
+                error_rate = np.array(ans.rx2('error.rate'));
+                error_rate_var = np.zeros_like(error_rate);
                 for row_cnt in range(error_rate.shape[0]):
                     for col_cnt in range(error_rate.shape[1]):
                         if row_cnt == 0:
@@ -253,22 +253,22 @@ class r_pls(r_base):
                 ans = robjects.r(r_statement);
                 #get the plsda results
                 #get the scores
-                scores_x = numpy.array(ans.rx2('scoreMN'));
+                scores_x = np.array(ans.rx2('scoreMN'));
                 #get the loadings
-                loadings_x = numpy.array(ans.rx2('loadingMN'));
+                loadings_x = np.array(ans.rx2('loadingMN'));
                 if orthoI !=0:
                     #get the scores
-                    scoresortho_x = numpy.array(ans.rx2('orthoScoreMN'));
+                    scoresortho_x = np.array(ans.rx2('orthoScoreMN'));
                     #get the loadings
-                    loadingsortho_x = numpy.array(ans.rx2('orthoLoadingMN'));
+                    loadingsortho_x = np.array(ans.rx2('orthoLoadingMN'));
                 # get the VIPs
-                vip = numpy.array(ans.rx2("vipVn")); 
+                vip = np.array(ans.rx2("vipVn")); 
                 ans = robjects.r(r_statement);
                 # get the variance of each component
-                var_std_x = numpy.array(ans.rx2("xSdVn")); 
-                var_std_y = numpy.array(ans.rx2("ySdVn")); 
-                var_proportion = numpy.power(var_std_x,2);
-                var_proportion_y = numpy.power(var_std_x,2);
+                var_std_x = np.array(ans.rx2("xSdVn")); 
+                var_std_y = np.array(ans.rx2("ySdVn")); 
+                var_proportion = np.power(var_std_x,2);
+                var_proportion_y = np.power(var_std_x,2);
                 # get model summary
                 #TODO:
                 #---------------------------------
@@ -566,8 +566,8 @@ class r_pls(r_base):
             # get the VIPs
             r_statement = ('varImp(%s)'%(mvr_model_I)); #requires caret
             ans = robjects.r(r_statement);
-            vip = numpy.array(ans); #dim 1 = factors/responses, dim 2 = features
-            vip_reduced = numpy.zeros_like(vip[0,:]);
+            vip = np.array(ans); #dim 1 = factors/responses, dim 2 = features
+            vip_reduced = np.zeros_like(vip[0,:]);
             for j in range(vip.shape[1]):
                 vip_reduced[j]=vip[:,j].sum();
             # extract out VIP
@@ -629,21 +629,21 @@ class r_pls(r_base):
             r_statement = ('%s' %(mvr_model_I));
             ans = robjects.r(r_statement);
             # get the canonical.correlations
-            #canonical_correlations = numpy.array(ans.rx2('canonical.correlations'));#dim 1 = features, dim 2 = comp
+            #canonical_correlations = np.array(ans.rx2('canonical.correlations'));#dim 1 = features, dim 2 = comp
             # get the fit residuals
-            residuals = numpy.array(ans.rx2("residuals")); #dim1=features, dim2=comp, dim3=factors
+            residuals = np.array(ans.rx2("residuals")); #dim1=features, dim2=comp, dim3=factors
             #get the scores
-            scores_x = numpy.array(ans.rx2('scores')); #dim 1 = samples, dim 2 = comp
-            scores_y = numpy.array(ans.rx2('Yscores'));
+            scores_x = np.array(ans.rx2('scores')); #dim 1 = samples, dim 2 = comp
+            scores_y = np.array(ans.rx2('Yscores'));
             #get the loadings
-            loadings_x = numpy.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
-            loadings_y = numpy.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
+            loadings_x = np.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
+            loadings_y = np.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
             #get the means
-            means_x = numpy.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
-            means_y = numpy.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
+            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
+            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
             # get the variance of each component
-            var_x = numpy.array(ans.rx2("Xvar")); #dim 1 = comp
-            var_x_total = numpy.array(ans.rx2('Xtotvar'));
+            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
+            var_x_total = np.array(ans.rx2('Xtotvar'));
             # calculate the correlation matrix
             cor_x = self.calculate_mvr_correlation(
                         mvr_model_I,
@@ -757,8 +757,8 @@ class r_pls(r_base):
             ans = robjects.r(r_statement);
             # get model validation
             validation_results = ans.rx2("validation");
-            press = numpy.array(validation_results.rx2('PRESS'));
-            adj = numpy.array(validation_results.rx2('adj'));
+            press = np.array(validation_results.rx2('PRESS'));
+            adj = np.array(validation_results.rx2('adj'));
             # get the model cross validation statistics
             # dim 1 = "CV", "adjCV"
             # dim 2 = response variables
@@ -767,24 +767,24 @@ class r_pls(r_base):
             #           e.g. for 5 comps there should be 6 models
             r_statement = ('RMSEP(%s)'%(mvr_model_I)); # root mean squared error
             ans = robjects.r(r_statement);
-            rmsep = numpy.array(ans.rx2('val'))[1]; #adjCV
-            rmsep_reduced = numpy.zeros_like(rmsep[0,:]);
+            rmsep = np.array(ans.rx2('val'))[1]; #adjCV
+            rmsep_reduced = np.zeros_like(rmsep[0,:]);
             for j in range(rmsep.shape[1]):
                 rmsep_reduced[j]=rmsep[:,j].sum();
             r_statement = ('MSEP(%s)'%(mvr_model_I));
             ans = robjects.r(r_statement);
-            msep = numpy.array(ans.rx2('val'))[1]; #adjCV
-            msep_reduced = numpy.zeros_like(msep[0,:]);
+            msep = np.array(ans.rx2('val'))[1]; #adjCV
+            msep_reduced = np.zeros_like(msep[0,:]);
             for j in range(msep.shape[1]):
                 msep_reduced[j]=msep[:,j].sum();
             #calculate the Q2
             r_statement = ('mvrValstats(%s, estimate="%s")'%(mvr_model_I,validation));
             ans = robjects.r(r_statement);
-            sse = numpy.array(ans.rx2('SSE'))[0];
-            sst = numpy.array(ans.rx2('SST'))[0];
+            sse = np.array(ans.rx2('SSE'))[0];
+            sst = np.array(ans.rx2('SST'))[0];
             #q2 = 1-(sse/sst);
-            sse_reduced = numpy.zeros_like(sse[0,:]);
-            sst_reduced = numpy.zeros_like(sse[0,:]);
+            sse_reduced = np.zeros_like(sse[0,:]);
+            sst_reduced = np.zeros_like(sse[0,:]);
             for j in range(sse.shape[1]):
                 sse_reduced[j]=sse[:,j].sum();
                 sst_reduced[j]=sse.shape[0]*sst[0];
@@ -792,11 +792,11 @@ class r_pls(r_base):
             #calculate the R2
             r_statement = ('mvrValstats(%s, estimate="train")'%(mvr_model_I));
             ans = robjects.r(r_statement);
-            sse = numpy.array(ans.rx2('SSE'))[0];
-            sst = numpy.array(ans.rx2('SST'))[0];
+            sse = np.array(ans.rx2('SSE'))[0];
+            sst = np.array(ans.rx2('SST'))[0];
             #r2 = 1-(sse/sst);
-            sse_reduced = numpy.zeros_like(sse[0,:]);
-            sst_reduced = numpy.zeros_like(sse[0,:]);
+            sse_reduced = np.zeros_like(sse[0,:]);
+            sst_reduced = np.zeros_like(sse[0,:]);
             for j in range(sse.shape[1]):
                 sse_reduced[j]=sse[:,j].sum();
                 sst_reduced[j]=sse.shape[0]*sst[0];
@@ -804,7 +804,7 @@ class r_pls(r_base):
             #calculate the R2X
             var_proportion, var_cumulative = self.calculate_mvr_explainedVariance(
                     mvr_model_I,);
-            r2x_reduced = numpy.insert(var_cumulative,0,0)
+            r2x_reduced = np.insert(var_cumulative,0,0)
             # extract out the model performance statistics
             data_perf = [];
             for i in range(len(msep_reduced)): #model
@@ -865,8 +865,8 @@ class r_pls(r_base):
             #              weights,
             #              nperm ));
             #ans = robjects.r(r_statement);
-            #pvalue_corrected = numpy.array(ans.rx2('p.value'));
-            #pvalue_method = numpy.array(ans.rx2('p.adjust.method'));
+            #pvalue_corrected = np.array(ans.rx2('p.value'));
+            #pvalue_method = np.array(ans.rx2('p.adjust.method'));
             # extract out the model performance statistics
             data_perf = [];
             for i in range(len(msep_reduced)): #model
@@ -924,13 +924,13 @@ class r_pls(r_base):
             r_statement = ('%s' %(mvr_model_I));
             ans = robjects.r(r_statement);
             #get the coefficients
-            coefficients = numpy.array(ans.rx2('coefficients')); #c(features, features, comp)
-            coefficients_comps_reduced = numpy.zeros([coefficients.shape[0],coefficients.shape[1]]);
-            coefficients_reduced = numpy.zeros([coefficients.shape[0]]);
+            coefficients = np.array(ans.rx2('coefficients')); #c(features, features, comp)
+            coefficients_comps_reduced = np.zeros([coefficients.shape[0],coefficients.shape[1]]);
+            coefficients_reduced = np.zeros([coefficients.shape[0]]);
             for i in range(coefficients.shape[0]):
-                coefficients_reduced[i] = numpy.abs(coefficients[i,:,:]).sum();
+                coefficients_reduced[i] = np.abs(coefficients[i,:,:]).sum();
                 for j in range(coefficients.shape[1]):
-                    coefficients_comps_reduced[i,j] = numpy.abs(coefficients[i,j,:]).sum();
+                    coefficients_comps_reduced[i,j] = np.abs(coefficients[i,j,:]).sum();
                     
             # extract out coefficients
             data_coefficients = [];
@@ -987,7 +987,7 @@ class r_pls(r_base):
                 correlation_O,mvr_model_I,mvr_model_I,method))
             #should this be "%s$loadings"?
             ans = robjects.r(r_statement);
-            data_O = numpy.array(ans); #dim 1 = features, dim 2 = comps
+            data_O = np.array(ans); #dim 1 = features, dim 2 = comps
             return data_O;
         except Exception as e:
             print(e);
@@ -1009,7 +1009,7 @@ class r_pls(r_base):
         try:
             r_statement = ('%s <- cor(model.matrix(%s), %s$Yscores)' %(correlation_O,mvr_model_I,mvr_model_I,))
             ans = robjects.r(r_statement);
-            data_O = numpy.array(ans); #dim 1 = features, dim 2 = comps
+            data_O = np.array(ans); #dim 1 = features, dim 2 = comps
             return data_O;
         except Exception as e:
             print(e);
@@ -1025,9 +1025,9 @@ class r_pls(r_base):
             # get the explained variance
             r_statement = ('explvar(%s)'%(mvr_model_I)); #var_ex = (1-(var_x_total[0]-var_x)/var_x_total[0])*100
             ans = robjects.r(r_statement);
-            var_proportion = numpy.array(ans); 
+            var_proportion = np.array(ans); 
             var_proportion = var_proportion/100.0; #remove the percent
-            var_cumulative = numpy.zeros_like(var_proportion);
+            var_cumulative = np.zeros_like(var_proportion);
             for i in range(len(var_proportion)):
                 if i==0:
                     var_cumulative[i] = var_proportion[i];

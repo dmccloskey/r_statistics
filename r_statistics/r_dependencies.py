@@ -1,7 +1,7 @@
 from sys import exit
 from math import log, sqrt, exp
 import csv
-import numpy
+import numpy as np
 import pandas as pd
 
 from rpy2.robjects.packages import importr
