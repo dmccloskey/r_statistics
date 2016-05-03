@@ -10,6 +10,33 @@ class r_enrichment(r_base):
         '''
         self.library_bioconductor(GO_I);
 
+    def select_columnsByKeys_GODB(self,
+            GO_I='GO.db',keys_I=[],
+            columns_I=['DEFINITION', 'ONTOLOGY', 'TERM']
+            ):
+        """Select additional GO information by GOID (i.e., key)
+        INPUT:
+        GO_I = name of the GO database in R
+        keys_I = list of keys (i.e., GOID)
+        columns_I = list of columns (e.g., 'TERM', 'DEFINITION', 'ONTOLOGY'
+        OUTPUT:
+        data_O = listDict with columns for GOID = keys_I and columns_I
+        """
+        data_O = [];
+        for key in keys_I:
+            row = {'GOID':key};
+            for column in columns_I:
+                try:
+                    r_statement = ('select(%s, "%s", "%s")'
+                                   % (GO_I,key,column));
+                    ans = robjects.r(r_statement);
+                    row[column]=ans.rx2(column)[0];
+                except Exception as e:
+                    print(e);
+                    exit(-1);
+            data_O.append(row);
+        return data_O;
+
     def make_topDiffGenes(self,
             topDiffGenes_O = 'topDiffGenes',
             pvalue_I = 0.05,
@@ -81,6 +108,25 @@ class r_enrichment(r_base):
             print(e);
             exit(-1);
 
+    def visualize_GOStructure_topGO(self,):
+        '''print a graph of the go structure
+        INPUT:
+        topGOresult_I = 'result',
+        OUTPUT:
+
+        TODO: ...
+        '''
+
+         #printGraph(GOdata, resultElim, firstSigNodes = 15, resultFis, fn.prefix = "tGO", useInfo = "all")
+        try:
+            r_statement = ('printGraph(%s,\
+                                )'                            
+                           %(topGOresult_I,
+                             ));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
     def calculate_enrichment_topGO(self,
             topGOresult_O = 'result',
             topDiffdata_I = 'topGOdata_O',
