@@ -369,7 +369,7 @@ class r_pca(r_correlation):
             center,
             scale,
             ):
-        '''Calculate the correlation matrix
+        '''Scale and/or center the data
         INPUT:
         data_var_I = name of the R workspace variable to scale/center
         center = string, default, TRUE
@@ -379,7 +379,7 @@ class r_pca(r_correlation):
         data_var_O = name of the R object containing the scaled/centered data
         '''
         try:
-            r_statement = ('%s <- prep(%s, center=%s, scale=%s)' %(
+            r_statement = ('%s <- prep(%s, center=%s, scale="%s")' %(
                 data_var_O,data_var_I,center,scale,))
             ans = robjects.r(r_statement);
         except Exception as e:

@@ -5,7 +5,7 @@ class r_pls(r_base):
     def calculate_plsda_mixomics(self,data_I,factor_I= "sample_name_abbreviation",
                         ncomp=5,max_iter=500,
                         tol = 1e-3, near_zero_var = "TRUE",
-                        method_predict="all",validation="loo",
+                        method_predict="all",validation="Mfold",
                         folds = 10, progressBar = "FALSE"):
         '''Perform PLS-DA
 
@@ -151,6 +151,48 @@ class r_pls(r_base):
             return data_scores,data_loadings
         else:
             print('missing values found!')
+
+    def calculate_perf_mixOmics(self,
+            perf_mixOmics_O = 'perf.o',
+            near_zero_var = "FALSE",
+            method_predict="all",validation="Mfold",
+            folds = 10, progressBar = "FALSE"
+            ):
+        '''CV a mixOmics model'''
+        try:
+            r_statement = ('%s = perf(result, method.predict="%s",\
+                validation="%s", folds=%s, progressBar = %s, near.zero.var=%s)'\
+                    %(cv_mixOmics_O,method_predict,validation,folds,progressBar,"FALSE"));
+            ans = robjects.r(r_statement);
+            
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_per_mixOmics(self,
+            perf_mixOmics_I = 'perf.o',
+            ):
+        '''Extract the perf of a mixOmics model'''
+        try:
+            r_statement = ('%s'
+                % (perf_mixOmics_I));
+            ans = robjects.r(r_statement);
+            # get the results of the cross validation
+            # columns error_rate are the principle variants
+            # rows are the methods used
+            #      "all" = "max.dist","centroids.dist", "mahalanobis.dist"
+            error_rate = np.array(ans.rx2('error.rate'));
+            error_rate_var = np.zeros_like(error_rate);
+            for row_cnt in range(error_rate.shape[0]):
+                for col_cnt in range(error_rate.shape[1]):
+                    if row_cnt == 0:
+                        error_rate_var[row_cnt,col_cnt]=error_rate[row_cnt,col_cnt];
+                    else:
+                        error_rate_var[row_cnt,col_cnt]=error_rate[row_cnt,col_cnt]-error_rate[row_cnt-1,col_cnt];
+        except Exception as e:
+            print(e);
+            exit(-1);
+
     def calculate_oplsda_ropl(self,data_I,factor_I= "sample_name_abbreviation",
             predI = "NA",
             orthoI = 0,
@@ -341,7 +383,7 @@ class r_pls(r_base):
         pls is used for PLS-DA via converting the factor vector into a dummy response variable (the plsda function in caret automates this task)
         spls is used for sparse versions of pls
         caret provides utility functions for pls and spls (e.g., calculating the vip)
-        RVAideMemoire provides utility functions for cross validation and permutation
+
 
         mvr(formula, ncomp, Y.add, data, subset, na.action,
         method = pls.options()$mvralg,
@@ -453,35 +495,16 @@ class r_pls(r_base):
                 elif response_I:
                     fit = 'responses_mt ~ concentrations_mt';
                 #call mvr
-                if validation == "CV":
-                    r_statement = ('result = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
-                            %(fit,ncomp,scale,validation,segments,method,lower,upper,weights));
-                elif validation == "LOO":
-                    ##works as well (requires dummy and concentrations_m to be in the global environment)
-                    #r_statement = ('result = mvr(fit, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
-                    #        %(ncomp,scale,validation,method,lower,upper,weights));
-                    # (requires dummy and concentration to be named variables in the dataframe)
-                    r_statement = ('result = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
-                            %(fit,ncomp,scale,validation,method,lower,upper,weights));
-                # adding Y.add and trunc.pow as input to mvr throws an error:
-                #r_statement = ('result = mvr(%s, %s,\
-                #        data = dataframe,\
-                #        Y.add = %s,\
-                #        scale = %s,\
-                #        validation = "%s",\
-                #        segments = %s,\
-                #        method = "%s",\
-                #        stripped = %s,\
-                #        lower = %s,\
-                #        upper = %s,\
-                #        trunc.pow = %s,\
-                #        weights = %s)' %(fit,ncomp,Y_add,scale,validation,segments,method,stripped,lower,upper,trunc_pow,weights));
-                ans = robjects.r(r_statement);
+                self.call_mvr('result',fit,
+                              ncomp=ncomp,scale=scale,validation=validation,
+                              segments=segments,method=method,lower=lower,
+                              upper=upper,weights=weights
+                              );
                 # plot the pls results
                 #r_statement = ('plot(result,plottype = "scores")');
                 #ans = robjects.r(r_statement);
                 #get the plsda results
-                data_scores,data_loadings,data_loadings_factors = self.extract_mvr_scoresAndLoadings('result',
+                data_scores,data_loadings,data_loadings_factors = self.calculate_mvr_scoresAndLoadings('result',
                             pls_model_I,
                             sns_sorted,
                             factor,
@@ -494,7 +517,7 @@ class r_pls(r_base):
                             weights,
                             method,);
                 #get the coefficients
-                data_coefficients = self.extract_mvr_coefficients('result',
+                data_coefficients = self.calculate_mvr_coefficients('result',
                             pls_model_I,
                             factors_unique,
                             cn_sorted,
@@ -539,6 +562,54 @@ class r_pls(r_base):
             return data_scores,data_loadings,data_perf,data_vip,data_coefficients,data_loadings_factors
         else:
             print('missing values found!');
+
+    def call_mvr(self,
+            mvr_O = 'result',
+            fit = 'dummy ~ concentrations_mt',                 
+            ncomp = 5,
+            scale = "TRUE",
+            validation = "CV",
+            segments = 10,
+            method = "cppls",
+            lower = 0.5,
+            upper = 0.5, 
+            weights = "NULL",
+            trunc_pow = "FALSE", 
+            stripped = "FALSE",
+            p_method = "fdr",
+            nperm = 999,
+            Y_add = "NULL",
+                 ):
+        '''call R mvr'''
+        try:
+            #call mvr
+            if validation == "CV":
+                r_statement = ('%s = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                        %(mvr_O,fit,ncomp,scale,validation,segments,method,lower,upper,weights));
+            elif validation == "LOO":
+                ##works as well (requires dummy and concentrations_m to be in the global environment)
+                #r_statement = ('result = mvr(fit, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                #        %(ncomp,scale,validation,method,lower,upper,weights));
+                # (requires dummy and concentration to be named variables in the dataframe)
+                r_statement = ('%s = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                        %(mvr_O,fit,ncomp,scale,validation,method,lower,upper,weights));
+            # adding Y.add and trunc.pow as input to mvr throws an error:
+            #r_statement = ('%s = mvr(%s, %s,\
+            #        data = dataframe,\
+            #        Y.add = %s,\
+            #        scale = %s,\
+            #        validation = "%s",\
+            #        segments = %s,\
+            #        method = "%s",\
+            #        stripped = %s,\
+            #        lower = %s,\
+            #        upper = %s,\
+            #        trunc.pow = %s,\
+            #        weights = %s)' %(mvr_O,fit,ncomp,Y_add,scale,validation,segments,method,stripped,lower,upper,trunc_pow,weights));
+            ans = robjects.r(r_statement);
+        except Exception as e:
+            print(e);
+            exit(-1);
             
     def calculate_mvr_vip(self,
             mvr_model_I,
@@ -563,13 +634,7 @@ class r_pls(r_base):
 
         '''
         try:
-            # get the VIPs
-            r_statement = ('varImp(%s)'%(mvr_model_I)); #requires caret
-            ans = robjects.r(r_statement);
-            vip = np.array(ans); #dim 1 = factors/responses, dim 2 = features
-            vip_reduced = np.zeros_like(vip[0,:]);
-            for j in range(vip.shape[1]):
-                vip_reduced[j]=vip[:,j].sum();
+            vip,vip_reduced=self.extract_mvr_vip(mvr_model_I)
             # extract out VIP
             data_vip = [];
             for r in range(vip.shape[0]):
@@ -605,7 +670,34 @@ class r_pls(r_base):
             print(e);
             exit(-1);
         return data_vip;
-    def extract_mvr_scoresAndLoadings(self,
+    def extract_mvr_vip(self,
+            mvr_model_I,
+            ):
+        '''Calculate the VIPs of the mvr model
+
+        requires caret
+
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_vip
+
+        '''
+        try:
+            # get the VIPs
+            r_statement = ('varImp(%s)'%(mvr_model_I)); #requires caret
+            ans = robjects.r(r_statement);
+            vip = np.array(ans); #dim 1 = factors/responses, dim 2 = features
+            vip_reduced = np.zeros_like(vip[0,:]);
+            for j in range(vip.shape[1]):
+                vip_reduced[j]=vip[:,j].sum();
+            # extract out VIP
+            return vip,vip_reduced;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def calculate_mvr_scoresAndLoadings(self,
             mvr_model_I,
             pls_model_I,
             sns_sorted,
@@ -626,38 +718,7 @@ class r_pls(r_base):
         data_loadings
         '''
         try:
-            r_statement = ('%s' %(mvr_model_I));
-            ans = robjects.r(r_statement);
-            # get the canonical.correlations
-            #canonical_correlations = np.array(ans.rx2('canonical.correlations'));#dim 1 = features, dim 2 = comp
-            # get the fit residuals
-            residuals = np.array(ans.rx2("residuals")); #dim1=features, dim2=comp, dim3=factors
-            #get the scores
-            scores_x = np.array(ans.rx2('scores')); #dim 1 = samples, dim 2 = comp
-            scores_y = np.array(ans.rx2('Yscores'));
-            #get the loadings
-            loadings_x = np.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
-            loadings_y = np.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
-            #get the means
-            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
-            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
-            # get the variance of each component
-            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
-            var_x_total = np.array(ans.rx2('Xtotvar'));
-            # calculate the correlation matrix
-            cor_x = self.calculate_mvr_correlation(
-                        mvr_model_I,
-                        'correlation_m',
-                        comps='1:'+str(loadings_x.shape[1]),
-                        );
-            cor_y = self.calculate_mvr_correlationResponse(
-                        mvr_model_I,
-                        'correlation_response_m',
-                        comps='1:'+str(loadings_y.shape[1]),
-                        );
-            # get the explained variance
-            var_proportion, var_cumulative = self.calculate_mvr_explainedVariance(
-                    mvr_model_I,);
+            scores_x,scores_y,var_proportion,var_cumulative,loadings_x,loadings_y,cor_x,cor_y=self.extract_mvr_scoresAndLoadings(mvr_model_I)
             # extract out scores
             data_scores = [];
             cnt=0;
@@ -729,6 +790,54 @@ class r_pls(r_base):
             print(e);
             exit(-1);
         return data_scores,data_loadings,data_loadings_factors;
+    def extract_mvr_scoresAndLoadings(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr scores and loadings
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        '''
+        try:
+            r_statement = ('%s' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            # get the canonical.correlations
+            #canonical_correlations = np.array(ans.rx2('canonical.correlations'));#dim 1 = features, dim 2 = comp
+            # get the fit residuals
+            residuals = np.array(ans.rx2("residuals")); #dim1=features, dim2=comp, dim3=factors
+            #get the scores
+            scores_x = np.array(ans.rx2('scores')); #dim 1 = samples, dim 2 = comp
+            scores_y = np.array(ans.rx2('Yscores'));
+            #get the loadings
+            loadings_x = np.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
+            loadings_y = np.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
+            #get the means
+            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
+            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
+            # get the variance of each component
+            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
+            var_x_total = np.array(ans.rx2('Xtotvar'));
+            # calculate the correlation matrix
+            cor_x = self.calculate_mvr_correlation(
+                        mvr_model_I,
+                        'correlation_m',
+                        comps='1:'+str(loadings_x.shape[1]),
+                        );
+            cor_y = self.calculate_mvr_correlationResponse(
+                        mvr_model_I,
+                        'correlation_response_m',
+                        comps='1:'+str(loadings_y.shape[1]),
+                        );
+            # get the explained variance
+            var_proportion, var_cumulative = self.calculate_mvr_explainedVariance(
+                    mvr_model_I,);
+            # extract out scores
+            return scores_x,scores_y,var_proportion,var_cumulative,loadings_x,loadings_y,cor_x,cor_y;
+        except Exception as e:
+            print(e);
+            exit(-1);
     
     def calculate_mvr_performance(self,
             mvr_model_I,
@@ -747,6 +856,51 @@ class r_pls(r_base):
             p_method,
             nperm):
         '''extract out mvr scores and loadings
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_perf
+        '''
+        try:
+            msep_reduced,rmsep_reduced,r2_reduced,q2_reduced,r2x_reduced=self.extract_mvr_performance(
+                    mvr_model_I,
+                    validation,)
+            # extract out the model performance statistics
+            data_perf = [];
+            for i in range(len(msep_reduced)): #model
+                data_tmp = {};
+                data_tmp['pls_model'] = pls_model_I;
+                data_tmp['pls_method'] = method;
+                data_tmp['pls_options'] = {'pls_scale':scale,
+                                            'lower':lower,
+                                            'upper':upper,
+                                            'weights':weights,
+                    };
+                data_tmp['pls_msep'] = msep_reduced[i];
+                data_tmp['pls_rmsep'] = rmsep_reduced[i];
+                data_tmp['pls_r2'] = r2_reduced[i]
+                data_tmp['pls_q2'] = q2_reduced[i];
+                data_tmp['pls_r2x'] = r2x_reduced[i];
+                data_tmp['crossValidation_ncomp'] = i;
+                data_tmp['crossValidation_method'] = validation;
+                data_tmp['crossValidation_options'] = {'segments':segments,
+                    };
+                data_tmp['permutation_nperm']=nperm;
+                data_tmp['permutation_pvalue']=None;
+                #data_tmp['permutation_pvalue_corrected']=pvalue_corrected[i];
+                #data_tmp['permutation_pvalue_corrected_description']=pvalue_method[i];
+                data_tmp['permutation_pvalue_corrected']=None;
+                data_tmp['permutation_pvalue_corrected_description']=None;
+                data_tmp['permutation_options']={};
+                data_perf.append(data_tmp);
+        except Exception as e:
+            print(e);
+            exit(-1);
+        return data_perf;
+    def extract_mvr_performance(self,
+            mvr_model_I,
+            validation,):
+        '''extract out mvr performance
         INPUT:
         mvr_model_I = name of the R mvr model workspace variable
         OUTPUT:
@@ -806,37 +960,10 @@ class r_pls(r_base):
                     mvr_model_I,);
             r2x_reduced = np.insert(var_cumulative,0,0)
             # extract out the model performance statistics
-            data_perf = [];
-            for i in range(len(msep_reduced)): #model
-                data_tmp = {};
-                data_tmp['pls_model'] = pls_model_I;
-                data_tmp['pls_method'] = method;
-                data_tmp['pls_options'] = {'pls_scale':scale,
-                                            'lower':lower,
-                                            'upper':upper,
-                                            'weights':weights,
-                    };
-                data_tmp['pls_msep'] = msep_reduced[i];
-                data_tmp['pls_rmsep'] = rmsep_reduced[i];
-                data_tmp['pls_r2'] = r2_reduced[i]
-                data_tmp['pls_q2'] = q2_reduced[i];
-                data_tmp['pls_r2x'] = r2x_reduced[i];
-                data_tmp['crossValidation_ncomp'] = i;
-                data_tmp['crossValidation_method'] = validation;
-                data_tmp['crossValidation_options'] = {'segments':segments,
-                    };
-                data_tmp['permutation_nperm']=nperm;
-                data_tmp['permutation_pvalue']=None;
-                #data_tmp['permutation_pvalue_corrected']=pvalue_corrected[i];
-                #data_tmp['permutation_pvalue_corrected_description']=pvalue_method[i];
-                data_tmp['permutation_pvalue_corrected']=None;
-                data_tmp['permutation_pvalue_corrected_description']=None;
-                data_tmp['permutation_options']={};
-                data_perf.append(data_tmp);
+            return msep_reduced,rmsep_reduced,r2_reduced,q2_reduced,r2x_reduced;
         except Exception as e:
             print(e);
             exit(-1);
-        return data_perf;
 
     def calculate_mvr_permutations(self,
                                    ):
@@ -898,7 +1025,7 @@ class r_pls(r_base):
             print(e);
             exit(-1);
         return data_perf;
-    def extract_mvr_coefficients(self,
+    def calculate_mvr_coefficients(self,
             mvr_model_I,
             pls_model_I,
             factors_unique,
@@ -921,17 +1048,7 @@ class r_pls(r_base):
 
         '''
         try:
-            r_statement = ('%s' %(mvr_model_I));
-            ans = robjects.r(r_statement);
-            #get the coefficients
-            coefficients = np.array(ans.rx2('coefficients')); #c(features, features, comp)
-            coefficients_comps_reduced = np.zeros([coefficients.shape[0],coefficients.shape[1]]);
-            coefficients_reduced = np.zeros([coefficients.shape[0]]);
-            for i in range(coefficients.shape[0]):
-                coefficients_reduced[i] = np.abs(coefficients[i,:,:]).sum();
-                for j in range(coefficients.shape[1]):
-                    coefficients_comps_reduced[i,j] = np.abs(coefficients[i,j,:]).sum();
-                    
+            coefficients,coefficients_comps_reduced,coefficients_reduced=self.extract_mvr_coefficients(mvr_model_I);                    
             # extract out coefficients
             data_coefficients = [];
             for r in range(coefficients_comps_reduced.shape[0]):
@@ -963,6 +1080,37 @@ class r_pls(r_base):
                                             'weights':weights,
                     };
                 data_coefficients.append(data_tmp);
+        except Exception as e:
+            print(e);
+            exit(-1);
+        return data_coefficients;
+    def extract_mvr_coefficients(self,
+            mvr_model_I,
+            ):
+        '''extract out the coefficients of the mvr model
+
+        requires caret
+
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_coefficients
+
+        '''
+        try:
+            r_statement = ('%s' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            #get the coefficients
+            coefficients = np.array(ans.rx2('coefficients')); #c(features, features, comp)
+            coefficients_comps_reduced = np.zeros([coefficients.shape[0],coefficients.shape[1]]);
+            coefficients_reduced = np.zeros([coefficients.shape[0]]);
+            for i in range(coefficients.shape[0]):
+                coefficients_reduced[i] = np.abs(coefficients[i,:,:]).sum();
+                for j in range(coefficients.shape[1]):
+                    coefficients_comps_reduced[i,j] = np.abs(coefficients[i,j,:]).sum();
+                    
+            # extract out coefficients
+            return coefficients,coefficients_comps_reduced,coefficients_reduced;
         except Exception as e:
             print(e);
             exit(-1);

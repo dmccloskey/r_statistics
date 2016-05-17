@@ -130,7 +130,7 @@ class r_dataNormalization(r_base):
                 # extract out data matrices
                 r_statement = ('exprs(eS_transformed)');
                 ans = robjects.r(r_statement);
-                concentrations_glog = numpy.array(ans);
+                concentrations_glog = np.array(ans);
                 # convert array back to dict
                 data_O = [];
                 cnt = 0;
@@ -167,7 +167,7 @@ class r_dataNormalization(r_base):
                 exit(-1);
 
             # reshape original concentrations
-            concentrations_original = numpy.array(concentrations);
+            concentrations_original = np.array(concentrations);
             concentrations = concentrations_original.reshape(len(cn_sorted),len(sns_sorted));
             return data_O, concentrations, concentrations_glog;
         else:
@@ -296,7 +296,7 @@ class r_dataNormalization(r_base):
                 concentrations_glog = self.extract_expressionSet('eS_transformed');
                 #r_statement = ('exprs(eS_transformed)');
                 #ans = robjects.r(r_statement);
-                #concentrations_glog = numpy.array(ans);
+                #concentrations_glog = np.array(ans);
 
                 # convert array back to dict
                 data_O = [];
@@ -337,7 +337,7 @@ class r_dataNormalization(r_base):
                 exit(-1);
 
             # reshape original concentrations
-            concentrations_original = numpy.array(concentrations);
+            concentrations_original = np.array(concentrations);
             concentrations = concentrations_original.reshape(len(cn_sorted),len(sns_sorted));
             return data_O, concentrations, concentrations_glog;
         else:
@@ -395,13 +395,13 @@ class r_dataNormalization(r_base):
         INPUT:
         es_I = string, name of the expression set in the R workspace
         OUTPUT:
-        data_O = numpy matrix
+        data_O = np matrix
         '''
         data_O = None;
         try:
             r_statement = ('exprs(eS_transformed)');
             ans = robjects.r(r_statement);
-            data_O = numpy.array(ans);
+            data_O = np.array(ans);
         except Exception as e:
             print(e);
             exit(-1);
