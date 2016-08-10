@@ -100,13 +100,13 @@ class r_statistics(r_base):
                 n = None;
                 r_statement = ('tapply(concentrations_v,sna_v,mean)'); # calculate the mean
                 ans = robjects.r(r_statement);
-                mean = numpy.array(ans);
+                mean = np.array(ans);
                 r_statement = ('tapply(concentrations_v,sna_v,var)'); # calculate the variance
                 ans = robjects.r(r_statement);
-                var = numpy.array(ans);
+                var = np.array(ans);
                 r_statement = ('tapply(concentrations_v,sna_v,length)'); # calculate the # of samples
                 ans = robjects.r(r_statement);
-                n = numpy.array(ans);
+                n = np.array(ans);
                 #convert to Data Frame
                 r_statement = ('dF = data.frame(concentrations_v,sna_v)');
                 ans = robjects.r(r_statement);
@@ -118,17 +118,17 @@ class r_statistics(r_base):
                 r_statement = ('pairwise.t.test(concentrations_v, sna_v, p.adjust.method = "none", pool.sd = %s, paired = %s, alternative = "%s")' %(pooled_sd_I, paired_I ,alternative_I));
                 ans = robjects.r(r_statement);
                 test_description = ans.rx('method')[0][0]
-                pvalues = numpy.array(ans.rx('p.value')[0]);
-                rownames = numpy.array(ans[2].rownames);
-                colnames = numpy.array(ans[2].colnames);
+                pvalues = np.array(ans.rx('p.value')[0]);
+                rownames = np.array(ans[2].rownames);
+                colnames = np.array(ans[2].colnames);
                 # call paired T-test with correction
                 r_statement = ('pairwise.t.test(concentrations_v, sna_v, p.adjust.method = "%s", pool.sd = %s, paired = %s, alternative = "%s")' %(padjusted_method_I, pooled_sd_I, paired_I ,alternative_I))
                 ans = robjects.r(r_statement);
                 test_description = ans.rx('method')[0][0]
-                pvalues_adjusted = numpy.array(ans.rx('p.value')[0]);
+                pvalues_adjusted = np.array(ans.rx('p.value')[0]);
                 pvalue_adjusted_description = ans.rx('p.adjust.method')[0][0]
-                rownames_adjusted = numpy.array(ans[2].rownames);
-                colnames_adjusted = numpy.array(ans[2].colnames);
+                rownames_adjusted = np.array(ans[2].rownames);
+                colnames_adjusted = np.array(ans[2].colnames);
                 # convert array back to dict
                 data_pairwise = [];
                 # extract out unique sna's in order
@@ -209,7 +209,7 @@ class r_statistics(r_base):
             test_description = ans.rx2('method')[0]
             pvalue = ans.rx2('p.value')[0]
             mean = ans.rx2('estimate')[0]
-            ci = numpy.array(ans.rx2('conf.int'))
+            ci = np.array(ans.rx2('conf.int'))
             # adjust the p-value
             r_statement = ('p.adjust(%s, method = "%s")' %(pvalue,padjusted_method_I));
             ans = robjects.r(r_statement);
@@ -243,7 +243,8 @@ class r_statistics(r_base):
         # with 'NA'
         concentrations_1 = [];
         for d in data_1_I:
-            if d:
+            #if d: #NOTE: 0 values will not be added
+            if not d is None:
                 concentrations_1.append(d);
             else:
                 concentrations_1.append('NA')
@@ -264,7 +265,7 @@ class r_statistics(r_base):
             test_description = ans.rx2('method')[0]
             pvalue = ans.rx2('p.value')[0]
             #mean = ans.rx2('estimate')[0]
-            ci = numpy.array(ans.rx2('conf.int'))
+            ci = np.array(ans.rx2('conf.int'))
             # adjust the p-value
             r_statement = ('p.adjust(%s, method = "%s")' %(pvalue,padjusted_method_I));
             ans = robjects.r(r_statement);
@@ -554,7 +555,7 @@ class r_statistics(r_base):
                 parameter = None;
             else:
                 parameter = ans.rx2('parameter')[0];
-            if numpy.isnan(ans.rx2('p.value')[0]):
+            if np.isnan(ans.rx2('p.value')[0]):
                 pValue = None;
             else:
                 pValue = ans.rx2('p.value')[0];
@@ -565,7 +566,7 @@ class r_statistics(r_base):
             if str(type(ans.rx2('conf.int')))=="<class 'rpy2.rinterface.RNULLType'>":
                 ci = [None,None];
             else:
-                ci = numpy.array(ans.rx2('conf.int'))
+                ci = np.array(ans.rx2('conf.int'))
             if str(type(ans.rx2('estimate')))=="<class 'rpy2.rinterface.RNULLType'>":
                 estimate = None;
             else:
