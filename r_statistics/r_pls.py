@@ -565,7 +565,8 @@ class r_pls(r_base):
 
     def call_mvr(self,
             mvr_O = 'result',
-            fit = 'dummy ~ concentrations_mt',                 
+            fit = 'dummy ~ concentrations_mt',      
+            data = 'dataframe',           
             ncomp = 5,
             scale = "TRUE",
             validation = "CV",
@@ -577,22 +578,21 @@ class r_pls(r_base):
             trunc_pow = "FALSE", 
             stripped = "FALSE",
             p_method = "fdr",
-            nperm = 999,
             Y_add = "NULL",
                  ):
         '''call R mvr'''
         try:
             #call mvr
             if validation == "CV":
-                r_statement = ('%s = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
-                        %(mvr_O,fit,ncomp,scale,validation,segments,method,lower,upper,weights));
+                r_statement = ('%s = mvr(%s, %s, data = %s, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                        %(mvr_O,fit,ncomp,data,scale,validation,segments,method,lower,upper,weights));
             elif validation == "LOO":
                 ##works as well (requires dummy and concentrations_m to be in the global environment)
                 #r_statement = ('result = mvr(fit, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
                 #        %(ncomp,scale,validation,method,lower,upper,weights));
                 # (requires dummy and concentration to be named variables in the dataframe)
-                r_statement = ('%s = mvr(%s, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
-                        %(mvr_O,fit,ncomp,scale,validation,method,lower,upper,weights));
+                r_statement = ('%s = mvr(%s, %s, data = %s, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                        %(mvr_O,fit,ncomp,data,scale,validation,method,lower,upper,weights));
             # adding Y.add and trunc.pow as input to mvr throws an error:
             #r_statement = ('%s = mvr(%s, %s,\
             #        data = dataframe,\
