@@ -160,12 +160,12 @@ class r_base():
             for c in list_I:
                 factor_r = (factor_r + ',' + '"' + str(c) + '"');
             factor_r = factor_r[1:];
-            r_statement = ('factors = c(%s)' % factor_r);
+            r_statement = ('factors.tmp = c(%s)' % factor_r);
             ans = robjects.r(r_statement);
-            r_statement = ('%s = factor(factors)' % factors_O); 
+            r_statement = ('%s = factor(factors.tmp)' % factors_O); 
             ans = robjects.r(r_statement);
             # cleanup
-            variables_delete = ['factors'];
+            variables_delete = ['factors.tmp'];
             self.remove_workspaceVariables(variables_I=variables_delete);
         except Exception as e:
             print(e);
@@ -319,14 +319,25 @@ class r_base():
         '''
         try:
             #convert to Data Frame
-            list_str = ','.join(labels_I);
+            list_str = '';
+            for label in labels_I:
+                list_str+=('%s=%s,'%(label,label));
+            list_str = list_str[:-1];
             r_statement = ('%s = data.frame(%s)'%(dataFrame_O,list_str));
             ans = robjects.r(r_statement);
 
-            #name the data frame columns
-            self.make_vectorFromList(labels_I,'list_c');
-            r_statement = ('names(%s) = list_c'%(dataFrame_O));
-            ans = robjects.r(r_statement);
+            ##BUG:
+            ##There is a bug where the names are not correctly
+            ##attached to the dataframe
+            ##convert to Data Frame
+            #list_str = ','.join(labels_I);
+            #r_statement = ('%s = data.frame(%s)'%(dataFrame_O,list_str));
+            #ans = robjects.r(r_statement);
+
+            ##name the data frame columns
+            #self.make_vectorFromList(labels_I,'list_c');
+            #r_statement = ('names(%s) = list_c'%(dataFrame_O));
+            #ans = robjects.r(r_statement);
 
             ##attach the data frame
             #r_statement = ('attach(%s)'%(dataFrame_O));

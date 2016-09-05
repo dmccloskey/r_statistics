@@ -577,21 +577,20 @@ class r_pls(r_base):
             weights = "NULL",
             trunc_pow = "FALSE", 
             stripped = "FALSE",
-            p_method = "fdr",
             Y_add = "NULL",
                  ):
         '''call R mvr'''
         try:
             #call mvr
             if validation == "CV":
-                r_statement = ('%s = mvr(%s, %s, data = %s, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                r_statement = ('%s = mvr(formula = %s, ncomp = %s, data = %s, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
                         %(mvr_O,fit,ncomp,data,scale,validation,segments,method,lower,upper,weights));
             elif validation == "LOO":
                 ##works as well (requires dummy and concentrations_m to be in the global environment)
                 #r_statement = ('result = mvr(fit, %s, data = dataframe, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
                 #        %(ncomp,scale,validation,method,lower,upper,weights));
                 # (requires dummy and concentration to be named variables in the dataframe)
-                r_statement = ('%s = mvr(%s, %s, data = %s, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
+                r_statement = ('%s = mvr(formula = %s, ncomp = %s, data = %s, scale = %s, validation = "%s", method = "%s", lower = %s, upper = %s,  weights = %s)'\
                         %(mvr_O,fit,ncomp,data,scale,validation,method,lower,upper,weights));
             # adding Y.add and trunc.pow as input to mvr throws an error:
             #r_statement = ('%s = mvr(%s, %s,\
@@ -1182,6 +1181,135 @@ class r_pls(r_base):
                 else:
                     var_cumulative[i] = var_proportion[i]+var_cumulative[i-1];
             return var_proportion,var_cumulative;
+        except Exception as e:
+            print(e);
+            exit(-1);
+    def extract_mvr_scores(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr scores
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        '''
+        try:
+            r_statement = ('scores(%s)' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            scores_x = np.array(ans);
+            return scores_x;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_mvr_Yscores(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr Yscores
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        '''
+        try:
+            r_statement = ('Yscores(%s)' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            scores_y = np.array(ans);
+            return scores_y;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_mvr_loadings(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr loadings
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        '''
+        try:
+            r_statement = ('loadings(%s)' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            loadings_x = np.array(ans);
+            return loadings_x;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_mvr_Yloadings(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr scores
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        '''
+        try:
+            r_statement = ('Yloadings(%s)' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            loadings_y = np.array(ans);
+            return loadings_y;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+            loadings_x = np.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
+            loadings_y = np.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
+            #get the means
+            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
+            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
+            # get the variance of each component
+            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
+            var_x_total = np.array(ans.rx2('Xtotvar'));
+            # calculate the correlation matrix
+            cor_x = self.calculate_mvr_correlation(
+                        mvr_model_I,
+                        'correlation_m',
+                        comps='1:'+str(loadings_x.shape[1]),
+                        );
+            cor_y = self.calculate_mvr_correlationResponse(
+                        mvr_model_I,
+                        'correlation_response_m',
+                        comps='1:'+str(loadings_y.shape[1]),
+                        );
+            # get the explained variance
+            var_proportion, var_cumulative = self.calculate_mvr_explainedVariance(
+                    mvr_model_I,);
+            # extract out scores
+            return scores_x,scores_y,var_proportion,var_cumulative,loadings_x,loadings_y,cor_x,cor_y;
+        except Exception as e:
+            print(e);
+            exit(-1);            
+
+    def extract_mvr_coefficientsMeanAndVar(self,
+            mvr_model_I,
+            ):
+        '''extract out mvr scores
+        INPUT:
+        mvr_model_I = name of the R mvr model workspace variable
+        OUTPUT:
+        data_scores
+        data_loadings
+        NOTES:
+        requires a cross validated model
+        '''
+        try:
+            r_statement = ('%s' %(mvr_model_I));
+            ans = robjects.r(r_statement);
+            #get the means
+            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
+            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
+            # get the variance of each component
+            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
+            var_x_total = np.array(ans.rx2('Xtotvar'));
+            return means_x,means_y,var_x,var_x_total;
         except Exception as e:
             print(e);
             exit(-1);
