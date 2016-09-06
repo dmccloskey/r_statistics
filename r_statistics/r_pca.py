@@ -400,7 +400,7 @@ class r_pca(r_correlation):
             nruncv="1",
             type = "krzanowski",
             ):
-        '''Calculate the correlation matrix
+        '''Call pcaMethods pca routine
         INPUT:
         data_var_I = name of the R workspace variable to calculate the pca
         center = string, default, TRUE
@@ -561,6 +561,32 @@ class r_pca(r_correlation):
             print(e);
             exit(-1);
         return data_scores,data_loadings;
+
+    def extract_pcaMethods_R2cum(self,pcaMethod_model_I):
+        ''' '''
+        try:
+            #get the r2 values
+            r_statement = ('result_R2cum <- R2cum(%s)' %(pcaMethod_model_I))
+            ans = robjects.r(r_statement);
+            r2 = np.array(ans); #dim 1 = samples, dim 2 = comp
+            return r2;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def extract_pcaMethods_cvstat(self,pcaMethod_model_I):
+        ''' '''
+        try:
+            # get the q2
+            r_statement = ('result_cvstat <- cvstat(%s)' %(pcaMethod_model_I))
+            ans = robjects.r(r_statement);
+            q2 = np.array(ans);
+            return q2;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+
     def extract_pcaMethods_crossValidation(self,
             pcaMethod_model_I,
             data_var_I,
@@ -582,8 +608,7 @@ class r_pca(r_correlation):
         INPUT:
         mvr_model_I = name of the R mvr model workspace variable
         OUTPUT:
-        data_scores
-        data_loadings
+        r2,q2,nrmsep,msep
         '''
         try:
             r_statement = ('%s' %(pcaMethod_model_I));
@@ -787,3 +812,63 @@ class r_pca(r_correlation):
                 data_tmp['sample_name_abbreviation'] = column_variables_I['sample_name_abbreviation'][r];
                 data_listDict.append(data_tmp);
         return data_listDict;
+    def extract_pcaMethods_scores(self,
+            pcaMethods_model_I,
+            ):
+        '''extract out pcaMethods scores
+        INPUT:
+        mvr_model_I = name of the R pcaMethods model workspace variable
+        OUTPUT:
+        data_scores
+        '''
+        try:
+            r_statement = ('pcaMethods::scores(%s)' %(pcaMethods_model_I));
+            ans = robjects.r(r_statement);
+            scores_x = np.array(ans);
+            return scores_x;
+        except Exception as e:
+            print(e);
+            exit(-1);
+    def extract_pcaMethods_loadings(self,
+            pcaMethods_model_I,
+            ):
+        '''extract out pcaMethods loadings
+        INPUT:
+        mvr_model_I = name of the R pcaMethods model workspace variable
+        OUTPUT:
+        data_loadings
+        '''
+        try:
+            r_statement = ('pcaMethods::loadings(%s)' %(pcaMethods_model_I));
+            ans = robjects.r(r_statement);
+            loadings_x = np.array(ans);
+            return loadings_x;
+        except Exception as e:
+            print(e);
+            exit(-1);
+
+    def calculate_pcaMethods_correlation(self,
+            mvr_model_I,
+            correlation_O,
+            comps='1:2',
+            method = "pearson"
+            ):
+        '''Calculate the correlation matrix
+        INPUT:
+        mvr_model_I
+        ncomps
+        OUTPUT:
+        data_O = correlation matrix
+        correlation_O = name of the R object containing the correlation matrix
+        TODO: broken, cannot use model.matrix, need to find a substitute
+        '''
+        try:
+            r_statement = ('%s <- cor(pcaMethods::completeObs(%s), pcaMethods::scores(%s), method = "%s")' %(
+                correlation_O,mvr_model_I,mvr_model_I,method))
+            #should this be "%s$loadings"?
+            ans = robjects.r(r_statement);
+            data_O = np.array(ans); #dim 1 = features, dim 2 = comps
+            return data_O;
+        except Exception as e:
+            print(e);
+            exit(-1);

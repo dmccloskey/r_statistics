@@ -582,7 +582,7 @@ class r_pls(r_base):
         '''call R mvr'''
         try:
             #call mvr
-            if validation == "CV":
+            if validation in ["CV","none"]:
                 r_statement = ('%s = mvr(formula = %s, ncomp = %s, data = %s, scale = %s, validation = "%s", segments = %s, method = "%s", lower = %s, upper = %s,  weights = %s)'\
                         %(mvr_O,fit,ncomp,data,scale,validation,segments,method,lower,upper,weights));
             elif validation == "LOO":
@@ -824,7 +824,7 @@ class r_pls(r_base):
                         'correlation_m',
                         comps='1:'+str(loadings_x.shape[1]),
                         );
-            cor_y = self.calculate_mvr_correlationResponse(
+            cor_y = self.calculate_mvr_correlationResponse(#dim 1 = features, dim2 = factors
                         mvr_model_I,
                         'correlation_response_m',
                         comps='1:'+str(loadings_y.shape[1]),
@@ -1097,10 +1097,13 @@ class r_pls(r_base):
 
         '''
         try:
-            r_statement = ('%s' %(mvr_model_I));
+            #r_statement = ('%s' %(mvr_model_I));
+            #ans = robjects.r(r_statement);
+            #coefficients = np.array(ans.rx2('coefficients')); #c(features, features, comp)
+
+            r_statement = ('coef(%s)'%(mvr_model_I));
             ans = robjects.r(r_statement);
-            #get the coefficients
-            coefficients = np.array(ans.rx2('coefficients')); #c(features, features, comp)
+            coefficients = np.array(ans); #c(features, features, comp)
             coefficients_comps_reduced = np.zeros([coefficients.shape[0],coefficients.shape[1]]);
             coefficients_reduced = np.zeros([coefficients.shape[0]]);
             for i in range(coefficients.shape[0]):
@@ -1170,7 +1173,7 @@ class r_pls(r_base):
         '''
         try:
             # get the explained variance
-            r_statement = ('explvar(%s)'%(mvr_model_I)); #var_ex = (1-(var_x_total[0]-var_x)/var_x_total[0])*100
+            r_statement = ('pls::explvar(%s)'%(mvr_model_I)); #var_ex = (1-(var_x_total[0]-var_x)/var_x_total[0])*100
             ans = robjects.r(r_statement);
             var_proportion = np.array(ans); 
             var_proportion = var_proportion/100.0; #remove the percent
@@ -1195,7 +1198,7 @@ class r_pls(r_base):
         data_loadings
         '''
         try:
-            r_statement = ('scores(%s)' %(mvr_model_I));
+            r_statement = ('pls::scores(%s)' %(mvr_model_I));
             ans = robjects.r(r_statement);
             scores_x = np.array(ans);
             return scores_x;
@@ -1214,7 +1217,7 @@ class r_pls(r_base):
         data_loadings
         '''
         try:
-            r_statement = ('Yscores(%s)' %(mvr_model_I));
+            r_statement = ('pls::Yscores(%s)' %(mvr_model_I));
             ans = robjects.r(r_statement);
             scores_y = np.array(ans);
             return scores_y;
@@ -1233,7 +1236,7 @@ class r_pls(r_base):
         data_loadings
         '''
         try:
-            r_statement = ('loadings(%s)' %(mvr_model_I));
+            r_statement = ('pls::loadings(%s)' %(mvr_model_I));
             ans = robjects.r(r_statement);
             loadings_x = np.array(ans);
             return loadings_x;
@@ -1252,41 +1255,13 @@ class r_pls(r_base):
         data_loadings
         '''
         try:
-            r_statement = ('Yloadings(%s)' %(mvr_model_I));
+            r_statement = ('pls::Yloadings(%s)' %(mvr_model_I));
             ans = robjects.r(r_statement);
             loadings_y = np.array(ans);
             return loadings_y;
         except Exception as e:
             print(e);
-            exit(-1);
-
-            loadings_x = np.array(ans.rx2('loadings')); #dim 1 = features, dim 2 = comp
-            loadings_y = np.array(ans.rx2('Yloadings')); #dim 1 = factors, dim 2 = comp
-            #get the means
-            means_x = np.array(ans.rx2('Xmeans')); #dim 1 = features, dim 2 = comp
-            means_y = np.array(ans.rx2('Ymeans')); #dim 1 = factors, dim 2 = comp
-            # get the variance of each component
-            var_x = np.array(ans.rx2("Xvar")); #dim 1 = comp
-            var_x_total = np.array(ans.rx2('Xtotvar'));
-            # calculate the correlation matrix
-            cor_x = self.calculate_mvr_correlation(
-                        mvr_model_I,
-                        'correlation_m',
-                        comps='1:'+str(loadings_x.shape[1]),
-                        );
-            cor_y = self.calculate_mvr_correlationResponse(
-                        mvr_model_I,
-                        'correlation_response_m',
-                        comps='1:'+str(loadings_y.shape[1]),
-                        );
-            # get the explained variance
-            var_proportion, var_cumulative = self.calculate_mvr_explainedVariance(
-                    mvr_model_I,);
-            # extract out scores
-            return scores_x,scores_y,var_proportion,var_cumulative,loadings_x,loadings_y,cor_x,cor_y;
-        except Exception as e:
-            print(e);
-            exit(-1);            
+            exit(-1);          
 
     def extract_mvr_coefficientsMeanAndVar(self,
             mvr_model_I,
