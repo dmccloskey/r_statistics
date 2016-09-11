@@ -55,12 +55,6 @@ class r_enrichment(r_base):
         except Exception as e:
             print(e);
             exit(-1);
-        #try:
-        #    r_statement = ('%s = amelia(%s, m=%s)' % (ameliaII_object_O,data_I,n_imputations_I));
-        #    ans = robjects.r(r_statement);
-        #except Exception as e:
-        #    print(e);
-        #    exit(-1);
 
     def make_topGOdata(self,
             topDiffdata_O = 'topGOdata_O',
@@ -178,7 +172,6 @@ class r_enrichment(r_base):
             exit(-1);
         return data_O;
 
-    ##
     def get_go_children(self,go_term, go_term_type):
         """Retrieve all more specific GO children from a starting GO term.
         https://github.com/chapmanb/bcbb/blob/master/stats/diffexp_go_analysis.py
