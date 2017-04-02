@@ -375,8 +375,11 @@ class r_missingValues(r_base):
             r_statement = ('%s' % (ameliaII_object_I));
             ans = robjects.r(r_statement);
             # extract out data matrices
-            imputations = np.array([np.array(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
-            if geometric_imputation_I: imputations = np.exp(imputations);
+            if geometric_imputation_I: 
+                #imputations = np.exp(imputations);
+                imputations = np.array([np.exp(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
+            else:
+                imputations = np.array([np.array(i) for i in ans.rx2('imputations')]); #dim imputations, rows, columns
             data_O = np.mean(imputations,axis=0); #dim rows, columns
         except Exception as e:
             print(e);
