@@ -162,7 +162,8 @@ class r_statistics(r_base):
                                 data_pairwise.append(data_tmp);
             except Exception as e:
                 print(e);
-                exit(-1);
+                #exit(-1);
+                return None,None;
         return data_anova,data_pairwise;
     def calculate_twoSampleTTest(self,data_1_I, data_2_I, alternative_I = "two.sided", mu_I = 0, paired_I="TRUE", var_equal_I = "TRUE", ci_level_I = 0.95, padjusted_method_I = "bonferroni"):
         '''calculate a two Sample t-test using R's built in Stats package
